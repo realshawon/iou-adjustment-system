@@ -52,7 +52,7 @@ button:disabled{opacity:.6;cursor:default}
         <option>Client Entertainment</option><option>Utilities</option><option>Other</option>
       </select>
 
-      <label>Vendor Name *</label><input id="vendor" placeholder="e.g. TravelCorp, Restaurant name">
+      <label>Vendor Name (optional)</label><input id="vendor" placeholder="e.g. TravelCorp, Restaurant name">
 
       <label>Description / Purpose *</label><textarea id="description" placeholder="What is this expense for? Full context…"></textarea>
 
@@ -111,7 +111,6 @@ function validate(v,receipt){
   if(!v.name) e.push('Employee name is required');
   if(!v.date) e.push('Expense date is required');
   if(!v.category) e.push('Expense category is required');
-  if(!v.vendor) e.push('Vendor name is required');
   if(!v.description) e.push('Description / purpose is required');
   if(!v.amount||Number(v.amount)<=0) e.push('Amount must be greater than 0');
   if(!/.+@.+\..+/.test(v.submitterEmail)) e.push('A valid email of yours is required');
@@ -128,7 +127,7 @@ function validate(v,receipt){
       if(Math.abs(t-Number(v.amount))>0.01) e.push('Cost breakdown total ('+t+') does not match the amount ('+v.amount+')');
     }
   }
-  const dup=getIOUs().some(x=>x.vendor===v.vendor&&Number(x.amount)===Number(v.amount)&&x.date===v.date&&x.category===v.category);
+  const dup=getIOUs().some(x=>(x.vendor||'')===(v.vendor||'')&&Number(x.amount)===Number(v.amount)&&x.date===v.date&&x.category===v.category);
   if(dup) e.push('An identical IOU (same vendor, amount, date, category) was already submitted');
   return e;
 }
