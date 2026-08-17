@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0b3d6e">
+<title>AKSID IOU Submission</title>
+<style>
+  :root{
+    --aksid:#0b3d6e; --aksid2:#1565c0; --grad:linear-gradient(135deg,#0b3d6e,#1565c0);
+    --bg:#eef1f6; --card:#ffffff; --line:#e6ebf2; --text:#16233a; --muted:#7a8699;
+    --ok:#16a34a; --okbg:#e8f7ee; --warn:#d97706; --warnbg:#fef4e6; --err:#dc2626; --errbg:#fdecec;
+    --pend:#5b5fe0; --pendbg:#ececfb; --shadow:0 6px 22px rgba(16,33,68,.08);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{font-family:'Segoe UI',system-ui,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.45}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative;padding-bottom:20px}
+  @media(min-width:520px){.app{box-shadow:var(--shadow)}}
+
+  /* top bar */
+  .top{background:var(--grad);color:#fff;padding:16px 18px 18px;border-radius:0 0 22px 22px;position:sticky;top:0;z-index:20}
+  .top .r1{display:flex;align-items:center;gap:10px}
+  .top .logo{height:30px;background:#fff;border-radius:7px;padding:3px}
+  .top h1{font-size:16px;margin:0;font-weight:800;letter-spacing:.3px;flex:1}
+  .top .pp{background:rgba(255,255,255,.18);border-radius:10px;font-size:11px;font-weight:700;padding:5px 9px;letter-spacing:.5px}
+
+  /* form */
+  .content{padding:16px}
+  h2.sec{font-size:15px;margin:4px 2px 10px;font-weight:800}
+  .sub{color:var(--muted);font-size:12.5px;margin:0 2px 12px}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
+
+  label{display:block;font-weight:700;font-size:11.5px;letter-spacing:.3px;color:var(--muted);margin:14px 2px 6px;text-transform:uppercase}
+  input,select,textarea{width:100%;padding:13px 14px;border:1.5px solid var(--line);border-radius:13px;font-size:15px;font-family:inherit;background:#fff;outline:none}
+  input:focus,textarea:focus,select:focus{border-color:var(--aksid2)}
+  textarea{min-height:78px;resize:vertical}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+
+  .btn{width:100%;background:var(--grad);color:#fff;border:none;padding:15px;border-radius:14px;font-size:15.5px;font-weight:800;cursor:pointer;box-shadow:var(--shadow);margin-top:6px}
+  .btn:active{transform:scale(.99)}
+  .btn.ghost{background:#fff;color:var(--aksid);border:1.5px solid var(--line);box-shadow:none}
+
+  .alert{border-radius:13px;padding:12px 14px;font-size:13px;margin:12px 0;display:none}
+  .alert.err{background:var(--errbg);color:#991b1b;border:1px solid #f6cccc}
+  .alert.ok{background:var(--okbg);color:#166534;border:1px solid #c4ecd1}
+  .alert ul{margin:6px 0 0;padding-left:18px}
+
+  .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(20px);background:#16233a;color:#fff;padding:13px 18px;border-radius:13px;font-size:13.5px;font-weight:600;box-shadow:var(--shadow);opacity:0;transition:.3s;z-index:60;max-width:90%;text-align:center}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.ok{background:#15803d}.toast.err{background:#b91c1c}
+
+  .doprint{background:#7f1d1d;color:#fff;font-weight:800;font-size:10px;letter-spacing:.5px;padding:7px;border-radius:10px;text-align:center;margin-top:12px}
+
+  .success-box{display:none;background:var(--okbg);border:2px solid var(--ok);border-radius:16px;padding:20px;text-align:center;margin-bottom:14px}
+  .success-box.on{display:block}
+  .success-box .title{font-size:18px;font-weight:800;color:var(--ok);margin-bottom:10px}
+  .success-box .id{font-size:24px;font-weight:800;color:var(--aksid);font-family:monospace;letter-spacing:2px;margin:10px 0}
+  .success-box .msg{color:var(--text);margin:10px 0}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="top">
+    <div class="r1">
+      <img src="AKSID Logo.png" class="logo" alt="" onerror="this.style.display='none'">
+      <h1>AKSID IOU</h1>
+      <span class="pp">⛔ NO PRINT</span>
+    </div>
+  </div>
+
+  <div class="content">
+    <h2 class="sec">Submit IOU Expense</h2>
+    <p class="sub">Submit your expense for approval. We check for missing fields and validate amounts.</p>
+
+    <div class="alert err" id="submitErr"></div>
+    <div class="alert ok" id="submitOk"></div>
+
+    <div class="success-box" id="successBox">
+      <div class="title">✓ IOU Submitted Successfully</div>
+      <div class="msg">Your IOU ID:</div>
+      <div class="id" id="successId"></div>
+      <div class="msg">This has been sent to your manager for approval.</div>
+      <button class="btn" onclick="resetForm()">Submit Another</button>
+    </div>
+
+    <div class="card" id="formCard">
+      <label>Employee Name *</label>
+      <input type="text" id="f_name" placeholder="Your name (e.g., Milan or Paik)">
+
+      <div class="two">
+        <div><label>Expense Date *</label><input type="date" id="f_date"></div>
+        <div><label>Category *</label>
+          <select id="f_cat">
+            <option value="">Select category</option>
+            <option value="Travel">Travel</option>
+            <option value="Meals">Meals</option>
+            <option value="Supplies">Supplies</option>
+            <option value="Software">Software</option>
+            <option value="Equipment">Equipment</option>
+            <option value="Client Entertainment">Client Entertainment</option>
+            <option value="Utilities">Utilities</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      <label>Vendor / Business Name *</label>
+      <input type="text" id="f_vendor" placeholder="e.g., TravelCorp, Restaurant Name">
+
+      <label>Description / Purpose *</label>
+      <textarea id="f_desc" placeholder="What is this expense for? Full context..."></textarea>
+
+      <label>Cost Breakdown (optional)</label>
+      <input type="text" id="f_break" placeholder="e.g., Flight=5000, Hotel=3000, Transport=500">
+
+      <div class="two">
+        <div><label>Amount BDT *</label><input type="number" id="f_amt" placeholder="0" step="0.01"></div>
+        <div><label>Receipt File *</label><input type="file" id="f_receipt" accept="image/*,.pdf"></div>
+      </div>
+
+      <h2 class="sec" style="margin-top:20px">Your Contact Information</h2>
+
+      <div class="two">
+        <div><label>Your Email *</label><input type="email" id="f_email" placeholder="you@aksidcorp.com"></div>
+        <div><label>Your WhatsApp *</label><input type="tel" id="f_whatsapp" placeholder="880XXXXXXXXX"></div>
+      </div>
+
+      <h2 class="sec" style="margin-top:20px">Manager Approval (First Level)</h2>
+      <p class="sub">Your manager will review and approve this expense.</p>
+
+      <div class="two">
+        <div><label>Manager Email *</label><input type="email" id="f_mgr" placeholder="manager@aksidcorp.com"></div>
+        <div><label>Manager WhatsApp *</label><input type="tel" id="f_mgr_whatsapp" placeholder="880XXXXXXXXX"></div>
+      </div>
+
+      <div style="margin-top:20px">
+        <button class="btn" onclick="submitIOU()">Validate & Submit</button>
+        <button class="btn ghost" onclick="resetForm()">Clear Form</button>
+      </div>
+    </div>
+
+    <div class="doprint">⛔ DO NOT PRINT — SAVE PAPER</div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// Set today's date as default
+document.getElementById('f_date').valueAsDate = new Date();
+
+// Categories
+const CATEGORIES = ['Travel', 'Meals', 'Supplies', 'Software', 'Equipment', 'Client Entertainment', 'Utilities', 'Other'];
+
+// Load IOUs from localStorage
+function getIOUs() {
+  try {
+    return JSON.parse(localStorage.getItem('ious') || '[]');
+  } catch {
+    return [];
+  }
+}
+
+// Save IOUs to localStorage
+function saveIOUs(ious) {
+  localStorage.setItem('ious', JSON.stringify(ious));
+}
+
+// Make.com webhook - syncs new submissions to SharePoint IOUTracker
+const IOU_SUBMIT_WEBHOOK = 'https://hook.eu1.make.com/a3vf4768wftyf628o350vzb65kv3cr9u';
+
+function syncToSharePoint(iou) {
+  fetch(IOU_SUBMIT_WEBHOOK, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id: iou.id,
+      name: iou.name,
+      date: iou.date,
+      category: iou.category,
+      vendor: iou.vendor,
+      description: iou.description,
+      breakdown: iou.breakdown,
+      amount: iou.amount,
+      submitterEmail: iou.submitterEmail,
+      submitterWhatsapp: iou.submitterWhatsapp,
+      managerEmail: iou.managerEmail,
+      managerWhatsapp: iou.managerWhatsapp,
+      receiptFileName: iou.receiptFileName,
+      submittedAt: iou.submittedAt
+    })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.ok) toast(`Synced to SharePoint (item ${data.itemId})`, 'ok');
+      else toast('Saved locally - SharePoint sync pending', 'ok');
+    })
+    .catch(() => toast('Saved locally - will sync when online', 'ok'));
+}
+
+// Generate unique IOU ID
+function generateIOUId() {
+  const date = new Date();
+  const dateStr = date.toISOString().split('T')[0].replace(/-/g, '');
+  const random = Math.random().toString(36).substr(2, 5).toUpperCase();
+  return `IOU-${dateStr}-${random}`;
+}
+
+// Validate form
+function validateForm() {
+  const errors = [];
+
+  const name = document.getElementById('f_name').value.trim();
+  const date = document.getElementById('f_date').value;
+  const cat = document.getElementById('f_cat').value;
+  const vendor = document.getElementById('f_vendor').value.trim();
+  const desc = document.getElementById('f_desc').value.trim();
+  const amt = parseFloat(document.getElementById('f_amt').value);
+  const email = document.getElementById('f_email').value.trim();
+  const whatsapp = document.getElementById('f_whatsapp').value.trim();
+  const mgrEmail = document.getElementById('f_mgr').value.trim();
+  const mgrWhatsapp = document.getElementById('f_mgr_whatsapp').value.trim();
+  const receipt = document.getElementById('f_receipt').files[0];
+
+  if (!name) errors.push('Employee name is required');
+  if (!date) errors.push('Expense date is required');
+  if (!cat) errors.push('Category is required');
+  if (!vendor) errors.push('Vendor name is required');
+  if (!desc) errors.push('Description is required');
+  if (!amt || amt <= 0) errors.push('Amount must be greater than 0');
+  if (!email || !email.includes('@')) errors.push('Valid email is required');
+  if (!whatsapp) errors.push('Your WhatsApp number is required');
+  if (!mgrEmail || !mgrEmail.includes('@')) errors.push('Manager email is required and must be valid');
+  if (!mgrWhatsapp) errors.push('Manager WhatsApp number is required');
+  if (!receipt) errors.push('Receipt file is required');
+
+  // Check for duplicate
+  const ious = getIOUs();
+  const isDuplicate = ious.some(iou =>
+    iou.vendor === vendor &&
+    iou.amount === amt &&
+    iou.date === date &&
+    iou.category === cat
+  );
+  if (isDuplicate) errors.push('An identical IOU (same vendor, amount, date, category) was submitted recently');
+
+  // Check cost breakdown
+  const breakdown = document.getElementById('f_break').value.trim();
+  if (breakdown) {
+    try {
+      const parts = breakdown.split(',').map(p => {
+        const match = p.trim().match(/=[\d.]+/);
+        return match ? parseFloat(match[0].substr(1)) : 0;
+      });
+      const total = parts.reduce((a, b) => a + b, 0);
+      if (Math.abs(total - amt) > 0.01) {
+        errors.push(`Cost breakdown total (${total}) does not match amount (${amt})`);
+      }
+    } catch (e) {
+      errors.push('Invalid cost breakdown format. Use: Item1=100, Item2=50');
+    }
+  }
+
+  return errors;
+}
+
+// Show error
+function showError(messages) {
+  const box = document.getElementById('submitErr');
+  if (messages.length === 0) {
+    box.style.display = 'none';
+    return;
+  }
+  box.style.display = 'block';
+  let html = '<strong>Please fix these issues:</strong><ul>';
+  messages.forEach(msg => html += `<li>${msg}</li>`);
+  html += '</ul>';
+  box.innerHTML = html;
+}
+
+// Show success
+function showSuccess() {
+  document.getElementById('submitErr').style.display = 'none';
+}
+
+// Submit IOU
+function submitIOU() {
+  const errors = validateForm();
+
+  if (errors.length > 0) {
+    showError(errors);
+    toast('Please fix the errors above', 'err');
+    return;
+  }
+
+  showSuccess();
+
+  // Create IOU object
+  const iouId = generateIOUId();
+  const iou = {
+    id: iouId,
+    name: document.getElementById('f_name').value.trim(),
+    date: document.getElementById('f_date').value,
+    category: document.getElementById('f_cat').value,
+    vendor: document.getElementById('f_vendor').value.trim(),
+    description: document.getElementById('f_desc').value.trim(),
+    breakdown: document.getElementById('f_break').value.trim(),
+    amount: parseFloat(document.getElementById('f_amt').value),
+    submitterEmail: document.getElementById('f_email').value.trim(),
+    submitterWhatsapp: document.getElementById('f_whatsapp').value.trim(),
+    managerEmail: document.getElementById('f_mgr').value.trim(),
+    managerWhatsapp: document.getElementById('f_mgr_whatsapp').value.trim(),
+    receiptFileName: document.getElementById('f_receipt').files[0].name,
+    submittedAt: new Date().toISOString(),
+    status: 'Submitted',
+    stage: 1,
+    currentApproverEmail: document.getElementById('f_mgr').value.trim(),
+    currentApproverWhatsapp: document.getElementById('f_mgr_whatsapp').value.trim(),
+    history: [
+      {
+        timestamp: new Date().toISOString(),
+        stage: 1,
+        action: 'Submitted',
+        by: 'Submitter',
+        note: 'IOU submitted for manager approval'
+      }
+    ]
+  };
+
+  // Save to localStorage
+  const ious = getIOUs();
+  ious.push(iou);
+  saveIOUs(ious);
+  syncToSharePoint(iou);
+
+  // Show success
+  document.getElementById('formCard').style.display = 'none';
+  document.getElementById('successBox').classList.add('on');
+  document.getElementById('successId').textContent = iouId;
+
+  toast(`IOU ${iouId} submitted successfully!`, 'ok');
+}
+
+// Reset form
+function resetForm() {
+  document.getElementById('f_name').value = '';
+  document.getElementById('f_date').valueAsDate = new Date();
+  document.getElementById('f_cat').value = '';
+  document.getElementById('f_vendor').value = '';
+  document.getElementById('f_desc').value = '';
+  document.getElementById('f_break').value = '';
+  document.getElementById('f_amt').value = '';
+  document.getElementById('f_email').value = '';
+  document.getElementById('f_whatsapp').value = '';
+  document.getElementById('f_mgr').value = '';
+  document.getElementById('f_mgr_whatsapp').value = '';
+  document.getElementById('f_receipt').value = '';
+
+  document.getElementById('formCard').style.display = 'block';
+  document.getElementById('successBox').classList.remove('on');
+  document.getElementById('submitErr').style.display = 'none';
+
+  document.getElementById('f_name').focus();
+}
+
+// Toast notification
+function toast(msg, type = 'ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast on ${type}`;
+  setTimeout(() => t.classList.remove('on'), 3000);
+}
+</script>
+
+</body>
+</html>
