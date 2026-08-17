@@ -71,8 +71,8 @@ button:disabled{opacity:.6;cursor:default}
         <div><label>Department Head WhatsApp *</label><input id="managerWhatsapp" type="tel" placeholder="+88XXXXXXXXXX"></div>
       </div>
 
-      <label>Receipt / Document *</label><input id="receipt" type="file" accept="image/*,.pdf,.heic,.png,.jpg,.jpeg">
-      <p class="muted" style="margin-top:4px">Attach the receipt — viewable by every approver from the approval page.</p>
+      <label>Receipt / Document (optional)</label><input id="receipt" type="file" accept="image/*,.pdf,.heic,.png,.jpg,.jpeg">
+      <p class="muted" style="margin-top:4px">Optional — if attached, it's viewable by every approver from the approval page.</p>
 
       <button id="sbtn" onclick="submitIOU()">Submit for approval</button>
       <div class="msg" id="msg"></div>
@@ -119,7 +119,6 @@ function validate(v,receipt){
   if(!v.managerName) e.push('Concern Department Head name is required');
   if(!/.+@.+\..+/.test(v.managerEmail)) e.push('Concern Department Head email is required and must be valid');
   if(!v.managerWhatsapp) e.push('Department Head WhatsApp number is required');
-  if(!receipt) e.push('A receipt file is required');
 
   if(v.breakdown){
     const parts=v.breakdown.split(',').map(p=>{const m=p.match(/=\s*([\d.]+)/);return m?parseFloat(m[1]):NaN;});
@@ -158,7 +157,7 @@ async function submitIOU(){
   const iou=Object.assign({},v,{
     id:newId(),
     amount:Number(v.amount),
-    receiptFileName:receipt.name,
+    receiptFileName:receipt?receipt.name:'',
     submittedAt:new Date().toISOString(),
     status:'Submitted',
     stage:1,

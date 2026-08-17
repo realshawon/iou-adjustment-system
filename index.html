@@ -179,7 +179,7 @@ function openDetail(id){
     ${e.breakdown?mrow('Cost breakdown',esc(e.breakdown)):''}
     ${mrow('Description',esc(e.description||'—'))}
     ${mrow('Concern Department Head',esc(e.managerName||e.managerEmail||'—'))}
-    ${mrow('Receipt',esc(e.receiptFileName||'—'))}
+    ${mrow('Receipt',e.receiptFileName?esc(e.receiptFileName):'<span class="muted">No file attached</span>')}
     <div class="sec">Approval trail</div>${trail||'<div class="muted" style="font-size:13px">—</div>'}`;
 }
 
