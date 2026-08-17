@@ -1,718 +1,240 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#0b3d6e">
-<title>AKSID IOU Dashboard</title>
-<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AKSID IOU — Live Tracker</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
 <style>
-  :root{
-    --aksid:#0b3d6e; --aksid2:#1565c0; --grad:linear-gradient(135deg,#0b3d6e,#1565c0);
-    --bg:#eef1f6; --card:#ffffff; --line:#e6ebf2; --text:#16233a; --muted:#7a8699;
-    --ok:#16a34a; --okbg:#e8f7ee; --warn:#d97706; --warnbg:#fef4e6; --err:#dc2626; --errbg:#fdecec;
-    --pend:#5b5fe0; --pendbg:#ececfb; --shadow:0 6px 22px rgba(16,33,68,.08);
-  }
-  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{margin:0;height:100%}
-  body{font-family:'Segoe UI',system-ui,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.45}
-  .app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative;padding-bottom:84px}
-  @media(min-width:520px){.app{box-shadow:var(--shadow)}}
-
-  /* top bar */
-  .top{background:var(--grad);color:#fff;padding:16px 18px 18px;border-radius:0 0 22px 22px;position:sticky;top:0;z-index:20}
-  .top .r1{display:flex;align-items:center;gap:10px}
-  .top .logo{height:30px;background:#fff;border-radius:7px;padding:3px}
-  .top h1{font-size:16px;margin:0;font-weight:800;letter-spacing:.3px;flex:1}
-  .top .pp{background:rgba(255,255,255,.18);border-radius:10px;font-size:11px;font-weight:700;padding:5px 9px;letter-spacing:.5px}
-
-  /* views */
-  .view{display:none;padding:16px 16px 0;animation:fade .25s ease}
-  .view.on{display:block}
-  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-  h2.sec{font-size:15px;margin:4px 2px 10px;font-weight:800}
-  .sub{color:var(--muted);font-size:12.5px;margin:0 2px 12px}
-
-  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
-  .tap{cursor:pointer;transition:transform .08s}
-  .tap:active{transform:scale(.985)}
-
-  /* dashboard */
-  .hello{font-size:20px;font-weight:800;margin:2px 2px 2px}
-  .helloSub{color:var(--muted);font-size:13px;margin:0 2px 14px}
-  .kpis{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:6px}
-  .kpi{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;box-shadow:var(--shadow)}
-  .kpi .n{font-size:26px;font-weight:800;line-height:1}
-  .kpi .l{font-size:11.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-top:6px}
-  .kpi.a .n{color:var(--pend)} .kpi.b .n{color:var(--ok)} .kpi.c .n{color:var(--err)} .kpi.d .n{color:var(--aksid)}
-  .quick{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
-  .qbtn{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;text-align:center;box-shadow:var(--shadow);font-weight:700;font-size:13.5px}
-  .qbtn .ic{font-size:24px;display:block;margin-bottom:6px}
-  .qbtn.primary{background:var(--grad);color:#fff;border:none}
-
-  /* form */
-  label{display:block;font-weight:700;font-size:11.5px;letter-spacing:.3px;color:var(--muted);margin:14px 2px 6px;text-transform:uppercase}
-  input,select,textarea{width:100%;padding:13px 14px;border:1.5px solid var(--line);border-radius:13px;font-size:15px;font-family:inherit;background:#fff;outline:none}
-  input:focus,textarea:focus,select:focus{border-color:var(--aksid2)}
-  textarea{min-height:78px;resize:vertical}
-  .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .btn{width:100%;background:var(--grad);color:#fff;border:none;padding:15px;border-radius:14px;font-size:15.5px;font-weight:800;cursor:pointer;box-shadow:var(--shadow)}
-  .btn:active{transform:scale(.99)}
-  .btn.ghost{background:#fff;color:var(--aksid);border:1.5px solid var(--line);box-shadow:none}
-  .btn.ok{background:var(--ok)} .btn.err{background:var(--err)}
-  .btnrow{display:flex;gap:10px}
-  .btn.sm{padding:11px;font-size:13.5px;border-radius:12px}
-
-  /* list items */
-  .item{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:var(--shadow)}
-  .item .h{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
-  .item .nm{font-weight:800;font-size:15px}
-  .item .meta{color:var(--muted);font-size:12px;margin-top:2px}
-  .amt{font-weight:800;font-size:16px;white-space:nowrap}
-  .pill{display:inline-block;padding:4px 11px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.2px}
-  .pill.pend{background:var(--pendbg);color:var(--pend)} .pill.ok{background:var(--okbg);color:var(--ok)}
-  .pill.rej{background:var(--errbg);color:var(--err)} .pill.over{background:var(--warnbg);color:var(--warn)}
-  .track{display:flex;align-items:center;gap:0;margin-top:12px}
-  .node{flex:1;text-align:center;position:relative;font-size:9.5px;font-weight:800;color:var(--muted)}
-  .node .dot{width:22px;height:22px;border-radius:50%;background:#eef1f6;border:2px solid var(--line);display:grid;place-items:center;margin:0 auto 4px;font-size:11px;color:var(--muted)}
-  .node.done .dot{background:var(--ok);border-color:var(--ok);color:#fff}
-  .node.cur .dot{background:var(--aksid);border-color:var(--aksid);color:#fff;box-shadow:0 0 0 4px rgba(11,61,110,.15)}
-  .node.rej .dot{background:var(--err);border-color:var(--err);color:#fff}
-  .node.done,.node.cur{color:var(--text)}
-  .node::before{content:"";position:absolute;top:11px;left:-50%;width:100%;height:2px;background:var(--line);z-index:-1}
-  .node:first-child::before{display:none}
-  .node.done::before,.node.cur::before{background:var(--ok)}
-  .with{font-size:11.5px;color:var(--muted);margin-top:10px;text-align:center}
-
-  .empty{text-align:center;color:var(--muted);padding:40px 16px}
-  .empty .ic{font-size:42px;display:block;margin-bottom:10px;opacity:.6}
-
-  /* approve card */
-  .editrow{display:flex;align-items:center;gap:10px;margin:12px 0;background:#f7f9fc;border-radius:13px;padding:10px 12px}
-  .editrow label{margin:0;flex:1}
-  .editrow input{width:120px;text-align:right;font-weight:800;padding:10px}
-
-  /* notif */
-  .nlog{background:#0f1d33;color:#dce6f5;border-radius:13px;padding:13px;font-size:12px;white-space:pre-wrap;margin:8px 0;position:relative;font-family:ui-monospace,Consolas,monospace;line-height:1.5;overflow-x:auto}
-  .ch{display:inline-block;font-size:9.5px;font-weight:800;padding:3px 9px;border-radius:6px;margin-bottom:7px}
-  .ch.email{background:#1d4ed8;color:#fff}.ch.teams{background:#5b5fc7;color:#fff}.ch.wa{background:#25d366;color:#053}
-  .cpy{position:absolute;top:9px;right:9px;background:rgba(255,255,255,.14);color:#fff;border:none;border-radius:7px;padding:4px 10px;font-size:10.5px;cursor:pointer;font-weight:700}
-
-  /* bottom nav */
-  .nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid var(--line);display:flex;padding:8px 6px calc(8px + env(safe-area-inset-bottom));z-index:30;box-shadow:0 -4px 20px rgba(16,33,68,.06)}
-  .nav button{flex:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;font-weight:700;color:var(--muted);cursor:pointer;padding:4px 0;position:relative}
-  .nav button .ic{font-size:21px}
-  .nav button.on{color:var(--aksid)}
-  .nav .badge{position:absolute;top:-2px;right:18px;background:var(--err);color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:9px;display:grid;place-items:center;padding:0 4px}
-
-  /* sheet modal */
-  .sheet{position:fixed;inset:0;background:rgba(16,33,68,.45);display:none;align-items:flex-end;justify-content:center;z-index:50}
-  .sheet.on{display:flex}
-  .sheet .inner{background:#fff;width:100%;max-width:480px;border-radius:22px 22px 0 0;padding:18px 18px calc(20px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto;animation:up .25s ease}
-  @keyframes up{from{transform:translateY(100%)}to{transform:none}}
-  .grab{width:42px;height:5px;background:var(--line);border-radius:3px;margin:0 auto 14px}
-  .kv{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px}
-  .kv b{color:var(--muted);font-weight:700}
-  .hist{font-size:12.5px;padding:9px 0;border-bottom:1px dashed var(--line)}
-  .hist .t{color:var(--muted);font-size:11px}
-
-  /* toast */
-  .toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);background:#16233a;color:#fff;padding:13px 18px;border-radius:13px;font-size:13.5px;font-weight:600;box-shadow:var(--shadow);opacity:0;transition:.3s;z-index:60;max-width:90%;text-align:center}
-  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
-  .toast.ok{background:#15803d}.toast.err{background:#b91c1c}
-
-  .banner{background:var(--warnbg);border:1px solid #f6dca0;color:#92400e;border-radius:13px;padding:11px 13px;font-size:12px;margin-bottom:14px}
-  .doprint{background:#7f1d1d;color:#fff;font-weight:800;font-size:10px;letter-spacing:.5px;padding:7px;border-radius:10px;text-align:center;margin-top:12px}
+:root{color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Segoe UI',system-ui,Arial,sans-serif;background:#f4f6f9;color:#1d1d1f;font-size:14px}
+.wrap{max-width:1080px;margin:0 auto;padding:18px}
+.topbar{display:flex;align-items:center;gap:16px;margin-bottom:10px;flex-wrap:wrap}
+.logo{height:46px;width:auto}
+.titlebox h1{font-size:20px;margin:0 0 2px}
+.sub{color:#6b6b70;font-size:12.5px;margin:0}
+.banner{display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:12px;margin:14px 0 16px;border:1px solid #d9e6d9;background:#eef8ee}
+.banner.bad{background:#fdeced;border-color:#f3c2c5}
+.dot{width:12px;height:12px;border-radius:50%;background:#2e9d4f;flex:0 0 auto;box-shadow:0 0 0 4px rgba(46,157,79,.18)}
+.banner.bad .dot{background:#d23b46;box-shadow:0 0 0 4px rgba(210,59,70,.18)}
+.banner b{font-size:14.5px}.banner .meta{margin-left:auto;color:#6b6b70;font-size:12px;text-align:right}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px}
+.card{background:#fff;border:1px solid #e6e8ec;border-radius:12px;padding:14px 16px}
+.card .lbl{color:#6b6b70;font-size:12px;margin-bottom:6px}.card .val{font-size:22px;font-weight:700}
+.card .val.ok{color:#2e9d4f}.card .note{color:#9a9aa0;font-size:11.5px;margin-top:4px}
+.panel{background:#fff;border:1px solid #e6e8ec;border-radius:12px;padding:16px;margin-bottom:16px}
+.panel h2{font-size:14px;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+.panel h2 .tag{font-size:10.5px;font-weight:700;color:#2a6df4;background:#eaf1ff;padding:2px 7px;border-radius:20px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid #eef0f3;vertical-align:middle}
+th{color:#6b6b70;font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px}
+td.amt,th.amt{text-align:right;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:none}
+.steps{display:flex;align-items:center}
+.stp{width:12px;height:12px;border-radius:50%;background:#e2e6ec;flex:0 0 auto}
+.stp.done{background:#2e9d4f}.stp.cur{background:#2a6df4;box-shadow:0 0 0 3px rgba(42,109,244,.22)}
+.stp.rej{background:#d23b46}
+.stpl{width:16px;height:2px;background:#e2e6ec;flex:0 0 auto}.stpl.done{background:#2e9d4f}
+.avatar{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#eef1f6;color:#41506b;font-size:10.5px;font-weight:700;margin-right:8px;vertical-align:middle}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px}
+.pill.cur{color:#1c52c0;background:#e7efff}.pill.done{color:#2e7d46;background:#e6f4ea}.pill.rej{color:#a3242e;background:#fdeced}
+.muted{color:#6b6b70}.foot{color:#9a9aa0;font-size:11.5px;text-align:center;margin:6px 0 2px}
+.save{font-weight:700;color:#1d1d1f}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:#6b6b70;margin-top:10px}
+.legend span{display:inline-flex;align-items:center;gap:5px}.lg{width:10px;height:10px;border-radius:50%;display:inline-block}
+.empty{color:#9a9aa0;font-size:13px;padding:14px 4px}
+button.r{font:inherit;font-size:12px;border:1px solid #d6dae1;background:#fff;border-radius:8px;padding:5px 12px;cursor:pointer}
+.reflink{color:#2a6df4;font-weight:700;text-decoration:none}
+tbody tr{cursor:pointer}tbody tr:hover{background:#f7f9fc}tbody tr:hover .reflink{text-decoration:underline}
+.ovl{position:fixed;inset:0;background:rgba(17,24,39,.45);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:30px 14px;overflow:auto}
+.ovl.show{display:flex}
+.modal{background:#fff;border-radius:14px;max-width:600px;width:100%;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.modal h3{font-size:18px;margin:0 0 2px}
+.mrow{display:flex;padding:7px 0;border-bottom:1px solid #f0f2f5;font-size:13.5px}
+.mrow .k{color:#6b6b70;width:42%;flex:0 0 42%}.mrow .v{font-weight:600;word-break:break-word}
+.mclose{float:right;border:none;background:#f0f2f5;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:15px;line-height:1}
+.sec{font-size:11px;color:#6b6b70;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:16px 0 6px}
+.trailitem{font-size:13px;margin:4px 0}
+.mhead td{background:#f4f6f9;color:#41506b;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.4px;padding:9px 10px;cursor:default}
+.mhead:hover td{background:#f4f6f9}
+.mhead .cnt{color:#9a9aa0;font-weight:600;text-transform:none;letter-spacing:0;margin-left:6px}
+.monthsel{font:inherit;font-size:13px;padding:9px 12px;border:1px solid #d6dae1;border-radius:9px;background:#fff;color:#1d1d1f;cursor:pointer}
+.newbtn{font:inherit;font-size:13px;font-weight:700;padding:9px 14px;border:none;border-radius:9px;background:#2a6df4;color:#fff;cursor:pointer;text-decoration:none;display:inline-block}
+.spacer{margin-left:auto;display:flex;gap:10px;align-items:center}
 </style>
 </head>
 <body>
-<div class="app">
-
-  <div class="top">
-    <div class="r1">
-      <img src="/aksid-logo.png" class="logo" alt="" onerror="this.style.display='none'">
-      <h1>AKSID IOU</h1>
-      <span class="pp">⛔ NO PRINT</span>
+<div class="wrap">
+  <div class="topbar">
+    <img class="logo" src="https://images.squarespace-cdn.com/content/v1/61b1d88771230e2244b14213/de522f80-4556-42c4-af20-e3687e746991/AKSID-HORIZONTAL-LOGO.png?format=750w" alt="AKSID Corporation Limited" onerror="this.src='/aksid-logo.png'">
+    <div class="titlebox"><h1>IOU — Live Tracker</h1><p class="sub">AKSID Corporation Limited · who submitted, who it's with, what stage · live</p></div>
+    <div class="spacer">
+      <select id="monthFilter" class="monthsel" onchange="render()"><option value="">All months</option></select>
+      <a class="newbtn" href="/submit.html">+ New IOU</a>
     </div>
   </div>
 
-  <!-- HOME VIEW -->
-  <section class="view on" id="v-home">
-    <div style="padding:16px 16px 0">
-      <div class="hello" id="hello">Hello 👋</div>
-      <div class="helloSub">Your IOU expense overview.</div>
-      <div class="kpis">
-        <div class="kpi a tap" onclick="go('track')"><div class="n" id="k_prog">0</div><div class="l">In Approval</div></div>
-        <div class="kpi b tap" onclick="go('track')"><div class="n" id="k_done">0</div><div class="l">Approved</div></div>
-        <div class="kpi c tap" onclick="go('track')"><div class="n" id="k_rej">0</div><div class="l">Rejected</div></div>
-        <div class="kpi d tap" onclick="go('track')"><div class="n" id="k_amt">0</div><div class="l">Approved BDT</div></div>
-      </div>
-      <div class="quick">
-        <div class="qbtn primary tap" onclick="go('submit')"><span class="ic">➕</span>New IOU</div>
-        <div class="qbtn tap" onclick="go('track')"><span class="ic">📊</span>Track</div>
-        <div class="qbtn tap" onclick="go('approve')"><span class="ic">✅</span>Approvals</div>
-        <div class="qbtn tap" onclick="go('notify')"><span class="ic">🔔</span>Messages</div>
-      </div>
-      <div class="banner">💡 Your IOU tracker — runs independently with email & WhatsApp notifications.</div>
-      <div class="doprint">⛔ DO NOT PRINT — SAVE PAPER</div>
-    </div>
-  </section>
+  <div id="banner" class="banner"><span class="dot"></span>
+    <div><b id="bTitle">Loading…</b><div class="muted" id="bSub" style="font-size:12px">Reading local records</div></div>
+    <div class="meta" id="bMeta"></div>
+  </div>
 
-  <!-- SUBMIT VIEW (Same as submit.html but inline) -->
-  <section class="view" id="v-submit">
-    <div style="padding:16px 16px 0">
-      <h2 class="sec">New IOU Expense</h2>
-      <p class="sub">Submit your expense. We check for missing fields and validate amounts.</p>
+  <div class="cards">
+    <div class="card"><div class="lbl">In approval now</div><div class="val" id="kOpen">—</div><div class="note">awaiting an approver</div></div>
+    <div class="card"><div class="lbl">Approved</div><div class="val ok" id="kApproved">—</div><div class="note">fully approved</div></div>
+    <div class="card"><div class="lbl">Rejected</div><div class="val" id="kRej">—</div><div class="note">sent back</div></div>
+    <div class="card"><div class="lbl">Total submissions</div><div class="val" id="kTotal">—</div><div class="note">in the system</div></div>
+  </div>
 
-      <div class="card">
-        <label>Employee Name *</label>
-        <input type="text" id="f2_name" placeholder="Your name (e.g., Milan or Paik)">
-
-        <div class="two">
-          <div><label>Expense Date *</label><input type="date" id="f2_date"></div>
-          <div><label>Category *</label>
-            <select id="f2_cat">
-              <option value="">Select category</option>
-              <option value="Travel">Travel</option>
-              <option value="Meals">Meals</option>
-              <option value="Supplies">Supplies</option>
-              <option value="Software">Software</option>
-              <option value="Equipment">Equipment</option>
-              <option value="Client Entertainment">Client Entertainment</option>
-              <option value="Utilities">Utilities</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-        </div>
-
-        <label>Vendor / Business Name *</label>
-        <input type="text" id="f2_vendor" placeholder="e.g., TravelCorp, Restaurant">
-
-        <label>Description / Purpose *</label>
-        <textarea id="f2_desc" placeholder="What is this expense for? Full context..."></textarea>
-
-        <label>Cost Breakdown (optional)</label>
-        <input type="text" id="f2_break" placeholder="e.g., Flight=5000, Hotel=3000">
-
-        <div class="two">
-          <div><label>Amount BDT *</label><input type="number" id="f2_amt" placeholder="0" step="0.01"></div>
-          <div><label>Receipt File *</label><input type="file" id="f2_receipt" accept="image/*,.pdf"></div>
-        </div>
-
-        <h2 class="sec" style="margin-top:20px">Your Contact</h2>
-        <div class="two">
-          <div><label>Your Email *</label><input type="email" id="f2_email" placeholder="you@aksidcorp.com"></div>
-          <div><label>Your WhatsApp *</label><input type="tel" id="f2_whatsapp" placeholder="880XXXXXXXXX"></div>
-        </div>
-
-        <h2 class="sec" style="margin-top:20px">Manager Approval (First Level)</h2>
-        <div class="two">
-          <div><label>Manager Email *</label><input type="email" id="f2_mgr" placeholder="manager@aksidcorp.com"></div>
-          <div><label>Manager WhatsApp *</label><input type="tel" id="f2_mgr_whatsapp" placeholder="880XXXXXXXXX"></div>
-        </div>
-
-        <div style="margin-top:20px">
-          <button class="btn" onclick="submitIOU2()">Validate & Submit</button>
-          <button class="btn ghost" onclick="resetForm2()">Clear</button>
-        </div>
-      </div>
-      <div class="doprint">⛔ DO NOT PRINT — SAVE PAPER</div>
-    </div>
-  </section>
-
-  <!-- TRACK VIEW -->
-  <section class="view" id="v-track">
-    <div style="padding:16px 16px 0">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <h2 class="sec" style="margin:0">All IOUs</h2>
-        <button class="btn sm" onclick="exportCSV()" style="width:auto;margin:0">📥 Export</button>
-      </div>
-
-      <div class="kpis">
-        <div class="kpi a"><div class="n" id="t_prog">0</div><div class="l">In Approval</div></div>
-        <div class="kpi b"><div class="n" id="t_done">0</div><div class="l">Approved</div></div>
-        <div class="kpi c"><div class="n" id="t_rej">0</div><div class="l">Rejected</div></div>
-        <div class="kpi d"><div class="n" id="t_amt">0 BDT</div><div class="l">Approved</div></div>
-      </div>
-
-      <div id="trackList"></div>
-      <div id="trackEmpty" class="empty" style="display:none"><div class="ic">📭</div>No IOUs yet</div>
-    </div>
-  </section>
-
-  <!-- APPROVE VIEW -->
-  <section class="view" id="v-approve">
-    <div style="padding:16px 16px 0">
-      <h2 class="sec">Approvals Waiting on You</h2>
-      <p class="sub">IOUs that need your approval. You can edit the amount if needed.</p>
-      <div id="approveList"></div>
-      <div id="approveEmpty" class="empty" style="display:none"><div class="ic">✅</div>No approvals waiting</div>
-    </div>
-  </section>
-
-  <!-- NOTIFY VIEW -->
-  <section class="view" id="v-notify">
-    <div style="padding:16px 16px 0">
-      <h2 class="sec">Notification Templates</h2>
-      <p class="sub">Ready-to-send messages for email, Teams, and WhatsApp.</p>
-      <div id="notifyList"></div>
-    </div>
-  </section>
-
-  <!-- DETAIL MODAL -->
-  <div class="sheet" id="detailSheet">
-    <div class="inner">
-      <div class="grab"></div>
-      <button class="btn ghost" style="width:auto;float:right;padding:8px 14px" onclick="closeDetail()">Close</button>
-      <div style="clear:both"></div>
-      <div id="detailContent"></div>
+  <div class="panel">
+    <h2>Submission &amp; approval tracker <span class="tag">Live</span> <button class="r" onclick="load()" style="margin-left:auto">↻ Refresh</button></h2>
+    <div id="trackWrap"><div class="empty">Loading…</div></div>
+    <div class="legend">
+      <span><span class="lg" style="background:#2e9d4f"></span>Approved / passed</span>
+      <span><span class="lg" style="background:#2a6df4"></span>Currently here</span>
+      <span><span class="lg" style="background:#e2e6ec"></span>Not yet reached</span>
+      <span><span class="lg" style="background:#d23b46"></span>Rejected</span>
+      <span class="muted">Submitted → Manager → Audit → Accounts → Top Mgmt → Approved</span>
     </div>
   </div>
 
-  <!-- BOTTOM NAV -->
-  <div class="nav">
-    <button class="on" onclick="go('home')"><span class="ic">🏠</span>Home</button>
-    <button onclick="go('submit')"><span class="ic">➕</span>Submit</button>
-    <button onclick="go('track')"><span class="ic">📊</span>Track</button>
-    <button onclick="go('approve')"><span class="ic">✅</span>Approve<span class="badge" id="approveBadge" style="display:none">0</span></button>
-    <button onclick="go('notify')"><span class="ic">🔔</span>Messages</button>
-  </div>
-
+  <p class="foot"><span class="save">DO NOT PRINT — SAVE PAPER.</span></p>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="ovl" id="ovl" onclick="if(event.target===this)closeDetail()">
+  <div class="modal" id="modalBox"></div>
+</div>
 
 <script>
-// Get IOUs from localStorage
-function getIOUs() {
-  try {
-    return JSON.parse(localStorage.getItem('ious') || '[]');
-  } catch {
-    return [];
+const ORDER=['Submitted','Manager','Audit','Accounts','Top Mgmt','Approved'];
+const WITH={Manager:'Reporting Manager',Audit:'Audit team',Accounts:'Accounts','Top Mgmt':'Top Mgmt',Approved:'Done · approved',Rejected:'Rejected'};
+const initials=n=>(n||'?').split(/\s+/).map(w=>w[0]).join('').slice(0,3).toUpperCase();
+const serialNum=r=>{const m=(r||'').match(/\d+/g);return m?parseInt(m[m.length-1],36)||0:0;};
+
+function getIOUs(){
+  try{const r=localStorage.getItem('ious');return r?JSON.parse(r):[];}catch(e){return [];}
+}
+// Map a stored IOU to its pipeline stage name
+function stageOf(e){
+  if(e.status==='Rejected')return 'Rejected';
+  if(e.status==='Approved'||e.status==='Reimbursed')return 'Approved';
+  return ORDER[Math.min(Math.max(Number(e.stage)||1,1),4)] || 'Manager';
+}
+
+function stepper(stage){
+  if(stage==='Rejected'){
+    let h='<div class="steps">';
+    for(let i=0;i<ORDER.length;i++){h+=`<span class="stp ${i===0?'done':'rej'}"></span>`+(i<ORDER.length-1?'<span class="stpl"></span>':'');}
+    return h+'</div>';
   }
-}
-
-// Save IOUs
-function saveIOUs(ious) {
-  localStorage.setItem('ious', JSON.stringify(ious));
-}
-
-// Make.com webhook - syncs new submissions to SharePoint IOUTracker
-const IOU_SUBMIT_WEBHOOK = 'https://hook.eu1.make.com/a3vf4768wftyf628o350vzb65kv3cr9u';
-
-function syncToSharePoint(iou) {
-  fetch(IOU_SUBMIT_WEBHOOK, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      id: iou.id,
-      name: iou.name,
-      date: iou.date,
-      category: iou.category,
-      vendor: iou.vendor,
-      description: iou.description,
-      breakdown: iou.breakdown,
-      amount: iou.amount,
-      submitterEmail: iou.submitterEmail,
-      submitterWhatsapp: iou.submitterWhatsapp,
-      managerEmail: iou.managerEmail,
-      managerWhatsapp: iou.managerWhatsapp,
-      receiptFileName: iou.receiptFileName,
-      submittedAt: iou.submittedAt
-    })
-  })
-    .then(r => r.json())
-    .then(data => {
-      if (data && data.ok) toast(`Synced to SharePoint (item ${data.itemId})`, 'ok');
-      else toast('Saved locally - SharePoint sync pending', 'ok');
-    })
-    .catch(() => toast('Saved locally - will sync when online', 'ok'));
-}
-
-// Navigation
-function go(view) {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('on'));
-  document.getElementById('v-' + view).classList.add('on');
-  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('on'));
-  event.target.closest('button').classList.add('on');
-
-  if (view === 'home') refreshHome();
-  if (view === 'track') refreshTrack();
-  if (view === 'approve') refreshApprove();
-  if (view === 'notify') refreshNotify();
-
-  window.scrollTo(0, 0);
-}
-
-// Set date default
-document.getElementById('f2_date').valueAsDate = new Date();
-
-// SUBMIT
-function submitIOU2() {
-  const name = document.getElementById('f2_name').value.trim();
-  const date = document.getElementById('f2_date').value;
-  const cat = document.getElementById('f2_cat').value;
-  const vendor = document.getElementById('f2_vendor').value.trim();
-  const desc = document.getElementById('f2_desc').value.trim();
-  const amt = parseFloat(document.getElementById('f2_amt').value);
-  const email = document.getElementById('f2_email').value.trim();
-  const whatsapp = document.getElementById('f2_whatsapp').value.trim();
-  const mgrEmail = document.getElementById('f2_mgr').value.trim();
-  const mgrWhatsapp = document.getElementById('f2_mgr_whatsapp').value.trim();
-  const receipt = document.getElementById('f2_receipt').files[0];
-
-  const errors = [];
-  if (!name) errors.push('Employee name is required');
-  if (!date) errors.push('Expense date is required');
-  if (!cat) errors.push('Category is required');
-  if (!vendor) errors.push('Vendor name is required');
-  if (!desc) errors.push('Description is required');
-  if (!amt || amt <= 0) errors.push('Amount must be greater than 0');
-  if (!email || !email.includes('@')) errors.push('Valid email is required');
-  if (!whatsapp) errors.push('Your WhatsApp number is required');
-  if (!mgrEmail || !mgrEmail.includes('@')) errors.push('Manager email is required');
-  if (!mgrWhatsapp) errors.push('Manager WhatsApp number is required');
-  if (!receipt) errors.push('Receipt file is required');
-
-  if (errors.length > 0) {
-    toast(errors.join('. '), 'err');
-    return;
+  const cur=ORDER.indexOf(stage); let h='<div class="steps">';
+  for(let i=0;i<ORDER.length;i++){
+    const cls=i<cur?'done':(i===cur?(stage==='Approved'?'done':'cur'):'');
+    h+=`<span class="stp ${cls}"></span>`+(i<ORDER.length-1?`<span class="stpl ${i<cur?'done':''}"></span>`:'');
   }
-
-  // Create IOU
-  const iouId = 'IOU-' + new Date().toISOString().split('T')[0].replace(/-/g, '') + '-' + Math.random().toString(36).substr(2, 5).toUpperCase();
-  const iou = {
-    id: iouId,
-    name: name,
-    date: date,
-    category: cat,
-    vendor: vendor,
-    description: desc,
-    breakdown: document.getElementById('f2_break').value.trim(),
-    amount: amt,
-    submitterEmail: email,
-    submitterWhatsapp: whatsapp,
-    managerEmail: mgrEmail,
-    managerWhatsapp: mgrWhatsapp,
-    receiptFileName: receipt.name,
-    submittedAt: new Date().toISOString(),
-    status: 'Submitted',
-    stage: 1,
-    currentApproverEmail: mgrEmail,
-    currentApproverWhatsapp: mgrWhatsapp,
-    history: [{timestamp: new Date().toISOString(), stage: 1, action: 'Submitted', by: 'Submitter', note: 'IOU submitted for manager approval'}]
-  };
-
-  const ious = getIOUs();
-  ious.push(iou);
-  saveIOUs(ious);
-  syncToSharePoint(iou);
-
-  toast(`IOU ${iouId} submitted!`, 'ok');
-  resetForm2();
-  go('home');
+  return h+'</div>';
+}
+function withPill(stage){
+  if(stage==='Approved')return '<span class="pill done">'+WITH.Approved+'</span>';
+  if(stage==='Rejected')return '<span class="pill rej">Rejected</span>';
+  return '<span class="pill cur">'+(WITH[stage]||stage)+'</span>';
+}
+function setBanner(ok,msg){
+  const b=document.getElementById('banner');
+  if(ok){b.className='banner';document.getElementById('bTitle').textContent='System operational — all OK';document.getElementById('bSub').textContent='Records loaded successfully';}
+  else{b.className='banner bad';document.getElementById('bTitle').textContent='Could not read records';document.getElementById('bSub').textContent=msg||'Local storage unavailable';}
+  document.getElementById('bMeta').innerHTML='Last refreshed<br>'+new Date().toLocaleString();
 }
 
-function resetForm2() {
-  document.getElementById('f2_name').value = '';
-  document.getElementById('f2_date').valueAsDate = new Date();
-  document.getElementById('f2_cat').value = '';
-  document.getElementById('f2_vendor').value = '';
-  document.getElementById('f2_desc').value = '';
-  document.getElementById('f2_break').value = '';
-  document.getElementById('f2_amt').value = '';
-  document.getElementById('f2_email').value = '';
-  document.getElementById('f2_whatsapp').value = '';
-  document.getElementById('f2_mgr').value = '';
-  document.getElementById('f2_mgr_whatsapp').value = '';
-  document.getElementById('f2_receipt').value = '';
+function money(n){return '৳'+Math.round(Number(n||0)).toLocaleString('en-US');}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function mrow(k,v){return `<div class="mrow"><div class="k">${k}</div><div class="v">${v}</div></div>`;}
+function closeDetail(){document.getElementById('ovl').classList.remove('show');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDetail();});
+
+function openDetail(id){
+  const box=document.getElementById('modalBox');
+  document.getElementById('ovl').classList.add('show');
+  const e=ALL_EX.find(x=>x.id===id);
+  if(!e){box.innerHTML='<button class="mclose" onclick="closeDetail()">✕</button><div class="empty">Not found</div>';return;}
+  const stage=stageOf(e);
+  const h=Array.isArray(e.history)?e.history:[];
+  const trail=h.map(x=>{
+    if(x.action==='Rejected'||x.action==='rejected')return `<div class="trailitem" style="color:#a3242e">✕ Rejected by ${esc(x.by||'—')}${x.note?` — “${esc(x.note)}”`:''}</div>`;
+    if(x.action==='Submitted')return `<div class="trailitem muted">• Submitted${x.by?' by '+esc(x.by):''}</div>`;
+    return `<div class="trailitem">✓ <b>${esc(ORDER[x.stage]||('Stage '+x.stage))}</b>${x.by?` <span class="muted">· ${esc(x.by)}</span>`:''}${x.note?` <span class="muted">— “${esc(x.note)}”</span>`:''}</div>`;
+  }).join('');
+  box.innerHTML=`
+    <button class="mclose" onclick="closeDetail()">✕</button>
+    <h3>${esc(e.id)}</h3>
+    <p class="sub">${withPill(stage)} &nbsp;·&nbsp; currently with <b>${esc(WITH[stage]||stage)}</b></p>
+    ${mrow('Submitter',esc(e.name||'—'))}
+    ${mrow('Email',esc(e.submitterEmail||'—'))}
+    ${mrow('WhatsApp',esc(e.submitterWhatsapp||'—'))}
+    ${mrow('Category',esc(e.category||'—'))}
+    ${mrow('Vendor',esc(e.vendor||'—'))}
+    ${mrow('Expense date',e.date?String(e.date).slice(0,10):'—')}
+    ${mrow('Amount',money(e.amount))}
+    ${e.breakdown?mrow('Cost breakdown',esc(e.breakdown)):''}
+    ${mrow('Description',esc(e.description||'—'))}
+    ${mrow('Reporting Manager',esc(e.managerEmail||'—'))}
+    ${mrow('Receipt',esc(e.receiptFileName||'—'))}
+    <div class="sec">Approval trail</div>${trail||'<div class="muted" style="font-size:13px">—</div>'}`;
 }
 
-// HOME VIEW
-function refreshHome() {
-  const ious = getIOUs();
-  const prog = ious.filter(i => i.status === 'Submitted').length;
-  const done = ious.filter(i => i.status === 'Approved').length;
-  const rej = ious.filter(i => i.status === 'Rejected').length;
-  const amt = ious.filter(i => i.status === 'Approved').reduce((a, b) => a + b.amount, 0);
+const monthKey=e=>{const d=e.date||e.submittedAt;if(!d)return '9999-99';const dt=new Date(d);if(isNaN(dt))return '9999-99';return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');};
+const monthLabel=k=>k==='9999-99'?'No date':new Date(k+'-01').toLocaleString('en-US',{month:'long',year:'numeric'});
+let ALL_EX=[];
 
-  document.getElementById('k_prog').textContent = prog;
-  document.getElementById('k_done').textContent = done;
-  document.getElementById('k_rej').textContent = rej;
-  document.getElementById('k_amt').textContent = amt.toLocaleString();
-}
-
-// TRACK VIEW
-function refreshTrack() {
-  const ious = getIOUs();
-  const prog = ious.filter(i => i.status === 'Submitted').length;
-  const done = ious.filter(i => i.status === 'Approved').length;
-  const rej = ious.filter(i => i.status === 'Rejected').length;
-  const amt = ious.filter(i => i.status === 'Approved').reduce((a, b) => a + b.amount, 0);
-
-  document.getElementById('t_prog').textContent = prog;
-  document.getElementById('t_done').textContent = done;
-  document.getElementById('t_rej').textContent = rej;
-  document.getElementById('t_amt').textContent = amt.toLocaleString() + ' BDT';
-
-  const list = document.getElementById('trackList');
-  list.innerHTML = '';
-
-  if (ious.length === 0) {
-    document.getElementById('trackEmpty').style.display = 'block';
-    return;
+function render(){
+  const ex=ALL_EX;
+  document.getElementById('kTotal').textContent=ex.length;
+  document.getElementById('kOpen').textContent=ex.filter(e=>['Manager','Audit','Accounts','Top Mgmt'].includes(stageOf(e))).length;
+  document.getElementById('kApproved').textContent=ex.filter(e=>stageOf(e)==='Approved').length;
+  document.getElementById('kRej').textContent=ex.filter(e=>stageOf(e)==='Rejected').length;
+  if(!ex.length){document.getElementById('trackWrap').innerHTML='<div class="empty">No submissions yet. New IOUs will appear here automatically.</div>';return;}
+  const sel=document.getElementById('monthFilter');
+  const keep=sel.value;
+  const keys=[...new Set(ex.map(monthKey))].sort((a,b)=>b.localeCompare(a));
+  sel.innerHTML='<option value="">All months</option>'+keys.map(k=>`<option value="${k}">${monthLabel(k)}</option>`).join('');
+  if(keys.includes(keep))sel.value=keep;
+  const filter=sel.value;
+  const sorted=[...ex].filter(e=>!filter||monthKey(e)===filter)
+    .sort((a,b)=>String(b.submittedAt||'').localeCompare(String(a.submittedAt||'')));
+  if(!sorted.length){document.getElementById('trackWrap').innerHTML='<div class="empty">No submissions in '+monthLabel(filter)+'.</div>';return;}
+  let rows='',lastKey=null;
+  for(const e of sorted){
+    const k=monthKey(e);
+    if(!filter&&k!==lastKey){lastKey=k;const cnt=sorted.filter(x=>monthKey(x)===k).length;rows+=`<tr class="mhead"><td colspan="6">${monthLabel(k)}<span class="cnt">${cnt} submission${cnt>1?'s':''}</span></td></tr>`;}
+    const stage=stageOf(e);
+    rows+=`<tr onclick="openDetail('${esc(e.id)}')">
+      <td><span class="reflink">${esc(e.id)}</span></td>
+      <td><span class="avatar">${initials(e.name)}</span>${esc(e.name||'—')}</td>
+      <td>${esc(e.category||'—')}</td>
+      <td class="amt">${money(e.amount)}</td>
+      <td>${stepper(stage)}</td>
+      <td>${withPill(stage)}</td></tr>`;
   }
-
-  document.getElementById('trackEmpty').style.display = 'none';
-
-  ious.slice().reverse().forEach(iou => {
-    const pill = iou.status === 'Submitted' ? 'pend' : (iou.status === 'Approved' ? 'ok' : 'rej');
-    const stages = ['Manager', 'Audit', 'Accounts', 'Top Mgmt'];
-    let html = `
-      <div class="item tap" onclick="viewDetail('${iou.id}')">
-        <div class="h">
-          <div>
-            <div class="nm">${iou.name}</div>
-            <div class="meta">${iou.category} • ${iou.date}</div>
-          </div>
-          <div style="text-align:right">
-            <div class="amt">${iou.amount.toLocaleString()}</div>
-            <div class="pill ${pill}">${iou.status}</div>
-          </div>
-        </div>
-        <div class="track">
-    `;
-    stages.forEach((s, i) => {
-      const isDone = i < (iou.stage || 1);
-      const isCur = i === (iou.stage - 1 || 0);
-      const cls = isDone ? 'done' : (isCur ? 'cur' : '');
-      html += `<div class="node ${cls}"><div class="dot">${i+1}</div></div>`;
-    });
-    html += `</div><div class="with">With ${stages[iou.stage - 1]}</div></div>`;
-    list.innerHTML += html;
-  });
+  document.getElementById('trackWrap').innerHTML='<table><thead><tr><th>IOU ID</th><th>Submitter</th><th>Category</th><th class="amt">Amount</th><th>Stage</th><th>Currently with</th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
 
-// APPROVE VIEW
-function refreshApprove() {
-  const ious = getIOUs();
-  const waitingOnMe = ious.filter(i => i.status === 'Submitted');
-
-  document.getElementById('approveBadge').textContent = waitingOnMe.length;
-  if (waitingOnMe.length > 0) document.getElementById('approveBadge').style.display = 'block';
-  else document.getElementById('approveBadge').style.display = 'none';
-
-  const list = document.getElementById('approveList');
-  list.innerHTML = '';
-
-  if (waitingOnMe.length === 0) {
-    document.getElementById('approveEmpty').style.display = 'block';
-    return;
-  }
-
-  document.getElementById('approveEmpty').style.display = 'none';
-
-  waitingOnMe.forEach(iou => {
-    const html = `
-      <div class="item">
-        <div class="nm">${iou.name} • ${iou.category}</div>
-        <div class="meta">${iou.vendor} • ${iou.date}</div>
-        <div style="margin-top:12px"><strong>Amount:</strong> ${iou.amount} BDT</div>
-        <div class="meta">${iou.description}</div>
-
-        <div class="editrow">
-          <label>Edit Amount</label>
-          <input type="number" id="edit_${iou.id}" value="${iou.amount}" step="0.01" placeholder="0">
-        </div>
-
-        <div class="two" style="margin-top:12px">
-          <button class="btn ok sm" onclick="approveIOU('${iou.id}')">✓ Approve</button>
-          <button class="btn err sm" onclick="rejectIOU('${iou.id}')">✕ Reject</button>
-        </div>
-      </div>
-    `;
-    list.innerHTML += html;
-  });
+function load(){
+  try{
+    ALL_EX=getIOUs();
+    setBanner(true);
+    render();
+  }catch(err){setBanner(false,String(err));}
 }
+load();
 
-function approveIOU(id) {
-  const ious = getIOUs();
-  const iou = ious.find(i => i.id === id);
-  if (!iou) return;
-
-  const editedAmt = parseFloat(document.getElementById('edit_' + id).value);
-  if (!isNaN(editedAmt) && editedAmt > 0) {
-    iou.amount = editedAmt;
-  }
-
-  iou.status = 'Approved';
-  iou.stage = 4;
-  iou.history.push({
-    timestamp: new Date().toISOString(),
-    stage: 1,
-    action: 'Approved',
-    by: 'Shawon (Approver)',
-    note: `Approved with amount: ${iou.amount} BDT`
-  });
-
-  saveIOUs(ious);
-  toast(`IOU ${id} approved!`, 'ok');
-  refreshApprove();
-  refreshHome();
-}
-
-function rejectIOU(id) {
-  const ious = getIOUs();
-  const iou = ious.find(i => i.id === id);
-  if (!iou) return;
-
-  iou.status = 'Rejected';
-  iou.history.push({
-    timestamp: new Date().toISOString(),
-    stage: 1,
-    action: 'Rejected',
-    by: 'Shawon (Approver)',
-    note: 'Rejected'
-  });
-
-  saveIOUs(ious);
-  toast(`IOU ${id} rejected!`, 'err');
-  refreshApprove();
-  refreshHome();
-}
-
-// NOTIFY VIEW
-function refreshNotify() {
-  const list = document.getElementById('notifyList');
-  list.innerHTML = `
-    <div class="card">
-      <h2 class="sec">Email Notification</h2>
-      <span class="ch email">EMAIL</span>
-      <div class="nlog">AKSID IOU Approval Request
-
-Employee: [Name]
-Amount: [Amount] BDT
-Category: [Category]
-Vendor: [Vendor]
-Date: [Date]
-
-Action needed: Please review and approve or reject this IOU.
-
-You can edit the amount if needed.
-
-Dashboard: https://iou.aksidcorp.com/
-      <button class="cpy" onclick="copyToClip(this.nextElementSibling.textContent)">Copy</button></div>
-    </div>
-
-    <div class="card">
-      <h2 class="sec">WhatsApp Notification</h2>
-      <span class="ch wa">WHATSAPP</span>
-      <div class="nlog">AKSID IOU Alert 💰
-
-Employee: [Name]
-Amount: [Amount] BDT
-Category: [Category]
-Vendor: [Vendor]
-
-Action: Please review and approve/reject.
-
-Dashboard: https://iou.aksidcorp.com/
-      <button class="cpy" onclick="copyToClip(this.nextElementSibling.textContent)">Copy</button></div>
-    </div>
-
-    <div class="card">
-      <h2 class="sec">Final Approval Email</h2>
-      <span class="ch email">EMAIL</span>
-      <div class="nlog">Your IOU has been Approved ✓
-
-Employee: [Name]
-Amount: [Amount] BDT
-Category: [Category]
-Vendor: [Vendor]
-Date: [Date]
-
-Status: APPROVED
-Approved by: Shawon
-
-Thank you!
-      <button class="cpy" onclick="copyToClip(this.nextElementSibling.textContent)">Copy</button></div>
-    </div>
-  `;
-}
-
-// DETAIL VIEW
-function viewDetail(id) {
-  const ious = getIOUs();
-  const iou = ious.find(i => i.id === id);
-  if (!iou) return;
-
-  const stages = ['Manager', 'Audit', 'Accounts', 'Top Mgmt'];
-  let html = `
-    <h2>${iou.id}</h2>
-    <div class="kv"><b>Name</b><span>${iou.name}</span></div>
-    <div class="kv"><b>Amount</b><span>${iou.amount} BDT</span></div>
-    <div class="kv"><b>Category</b><span>${iou.category}</span></div>
-    <div class="kv"><b>Vendor</b><span>${iou.vendor}</span></div>
-    <div class="kv"><b>Date</b><span>${iou.date}</span></div>
-    <div class="kv"><b>Status</b><span>${iou.status}</span></div>
-    <div class="kv"><b>Receipt</b><span>${iou.receiptFileName}</span></div>
-
-    <h3 style="margin-top:16px;font-size:13px;font-weight:800">History</h3>
-  `;
-
-  iou.history.forEach(h => {
-    const time = new Date(h.timestamp).toLocaleString();
-    html += `
-      <div class="hist">
-        <strong>${h.action}</strong> at Stage ${h.stage}<br>
-        <span class="t">By: ${h.by} | ${time}</span><br>
-        <span class="t">${h.note}</span>
-      </div>
-    `;
-  });
-
-  document.getElementById('detailContent').innerHTML = html;
-  document.getElementById('detailSheet').classList.add('on');
-}
-
-function closeDetail() {
-  document.getElementById('detailSheet').classList.remove('on');
-}
-
-// EXPORT
-function exportCSV() {
-  const ious = getIOUs();
-  let csv = 'ID,Name,Date,Category,Vendor,Amount,Status,Submitted\n';
-  ious.forEach(i => {
-    csv += `${i.id},${i.name},${i.date},${i.category},${i.vendor},${i.amount},${i.status},${i.submittedAt}\n`;
-  });
-
-  const blob = new Blob([csv], {type: 'text/csv'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'ious-' + new Date().toISOString().split('T')[0] + '.csv';
-  a.click();
-  toast('Exported to CSV', 'ok');
-}
-
-// TOAST
-function toast(msg, type = 'ok') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = `toast on ${type}`;
-  setTimeout(() => t.classList.remove('on'), 3000);
-}
-
-// COPY
-function copyToClip(text) {
-  navigator.clipboard.writeText(text);
-  toast('Copied to clipboard!', 'ok');
-}
-
-// Init
-refreshHome();
+const REFRESH_MS=30000;
+setInterval(()=>{
+  if(document.hidden)return;
+  if(document.getElementById('ovl').classList.contains('show'))return;
+  load();
+},REFRESH_MS);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) load(); });
 </script>
-
 </body>
 </html>
