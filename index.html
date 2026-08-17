@@ -95,7 +95,7 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f7f9fc}tbody tr:hover .reflin
       <span><span class="lg" style="background:#2a6df4"></span>Currently here</span>
       <span><span class="lg" style="background:#e2e6ec"></span>Not yet reached</span>
       <span><span class="lg" style="background:#d23b46"></span>Rejected</span>
-      <span class="muted">Submitted → Manager → Audit → Accounts → Top Mgmt → Approved</span>
+      <span class="muted">Submitted → Concern Department Head → Audit → Accounts → Top Management or Others → Approved</span>
     </div>
   </div>
 
@@ -107,8 +107,8 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f7f9fc}tbody tr:hover .reflin
 </div>
 
 <script>
-const ORDER=['Submitted','Manager','Audit','Accounts','Top Mgmt','Approved'];
-const WITH={Manager:'Reporting Manager',Audit:'Audit team',Accounts:'Accounts','Top Mgmt':'Top Mgmt',Approved:'Done · approved',Rejected:'Rejected'};
+const ORDER=['Submitted','Manager','Audit','Accounts','Top Management or Others','Approved'];
+const WITH={Manager:'Concern Department Head',Audit:'Audit team',Accounts:'Accounts','Top Management or Others':'Top Management or Others',Approved:'Done · approved',Rejected:'Rejected'};
 const initials=n=>(n||'?').split(/\s+/).map(w=>w[0]).join('').slice(0,3).toUpperCase();
 const serialNum=r=>{const m=(r||'').match(/\d+/g);return m?parseInt(m[m.length-1],36)||0:0;};
 
@@ -178,7 +178,7 @@ function openDetail(id){
     ${mrow('Amount',money(e.amount))}
     ${e.breakdown?mrow('Cost breakdown',esc(e.breakdown)):''}
     ${mrow('Description',esc(e.description||'—'))}
-    ${mrow('Reporting Manager',esc(e.managerEmail||'—'))}
+    ${mrow('Concern Department Head',esc(e.managerName||e.managerEmail||'—'))}
     ${mrow('Receipt',esc(e.receiptFileName||'—'))}
     <div class="sec">Approval trail</div>${trail||'<div class="muted" style="font-size:13px">—</div>'}`;
 }
