@@ -132,15 +132,19 @@ function validate(v,receipt){
   return e;
 }
 
-function syncToSharePoint(iou){
-  return fetch(IOU_SUBMIT_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      id:iou.id,name:iou.name,date:iou.date,category:iou.category,vendor:iou.vendor,
-      description:iou.description,breakdown:iou.breakdown,amount:iou.amount,
-      submitterEmail:iou.submitterEmail,submitterWhatsapp:iou.submitterWhatsapp,
-      managerEmail:iou.managerEmail,managerWhatsapp:iou.managerWhatsapp,
-      receiptFileName:iou.receiptFileName,submittedAt:iou.submittedAt
-    })}).then(r=>r.json()).catch(()=>null);
+function readFileB64(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(String(fr.result).split(',')[1]);fr.onerror=rej;fr.readAsDataURL(file);});}
+
+function syncToSharePoint(iou,receiptB64,receiptContentType){
+  const body={
+    id:iou.id,name:iou.name,date:iou.date,category:iou.category,vendor:iou.vendor,
+    description:iou.description,breakdown:iou.breakdown,amount:iou.amount,
+    submitterEmail:iou.submitterEmail,submitterWhatsapp:iou.submitterWhatsapp,
+    managerEmail:iou.managerEmail,managerWhatsapp:iou.managerWhatsapp,
+    receiptFileName:iou.receiptFileName,submittedAt:iou.submittedAt
+  };
+  if(receiptB64){ body.receiptFileBase64=receiptB64; body.receiptContentType=receiptContentType||'application/octet-stream'; }
+  return fetch(IOU_SUBMIT_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+    .then(r=>r.json()).catch(()=>null);
 }
 
 async function submitIOU(){
@@ -150,8 +154,13 @@ async function submitIOU(){
 
   const errs=validate(v,receipt);
   if(errs.length){showErr(errs);return;}
+  if(receipt && receipt.size>4*1024*1024){showErr(['"'+receipt.name+'" is over 4 MB — please upload a smaller file.']);return;}
 
-  btn.disabled=true;m.className='msg';m.style.display='block';m.textContent='Submitting…';
+  btn.disabled=true;m.className='msg';m.style.display='block';m.textContent=receipt?'Uploading receipt…':'Submitting…';
+
+  let receiptB64=null;
+  if(receipt){ try{ receiptB64=await readFileB64(receipt); }catch(e){ btn.disabled=false; m.className='msg err'; m.textContent='Could not read the receipt file — please try again.'; return; } }
+  m.textContent='Submitting…';
 
   const iou=Object.assign({},v,{
     id:newId(),
@@ -167,7 +176,7 @@ async function submitIOU(){
 
   const all=getIOUs();all.push(iou);saveIOUs(all);
 
-  const res=await syncToSharePoint(iou);
+  const res=await syncToSharePoint(iou,receiptB64,receipt?receipt.type:null);
   m.className='msg ok';
   m.textContent=(res&&res.ok)?('Saved and synced to SharePoint (item '+res.itemId+').'):'Saved locally — will sync when the connection is available.';
 
