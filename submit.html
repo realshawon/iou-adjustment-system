@@ -65,7 +65,7 @@ button:disabled{opacity:.6;cursor:default}
       </div>
 
       <div class="row">
-        <div><label>Expense Date *</label><input id="date" type="date"></div>
+        <div><label>Submission Date *</label><input id="date" type="date"></div>
         <div><label>Amount (BDT) *</label><input id="amount" type="number" step="0.01" placeholder="0"></div>
       </div>
 
@@ -140,7 +140,7 @@ function validate(v,receipt){
   if(!v.employeeId) e.push('Employee ID is required');
   if(!v.department) e.push('Department is required');
   if(!v.designation) e.push('Designation is required');
-  if(!v.date) e.push('Expense date is required');
+  if(!v.date) e.push('Submission date is required');
   if(!v.category) e.push('Expense category is required');
   if(!v.description) e.push('Description / purpose is required');
   if(!v.amount||Number(v.amount)<=0) e.push('Amount must be greater than 0');

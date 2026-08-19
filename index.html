@@ -185,7 +185,7 @@ function openDetail(id){
     ${mrow('WhatsApp',esc(e.submitterWhatsapp||'—'))}
     ${mrow('Category',esc(e.category||'—'))}
     ${mrow('Vendor',esc(e.vendor||'—'))}
-    ${mrow('Expense date',e.date?String(e.date).slice(0,10):'—')}
+    ${mrow('Submission date',e.date?String(e.date).slice(0,10):'—')}
     ${mrow('Amount',money(e.amount))}
     ${e.breakdown?mrow('Cost breakdown',esc(e.breakdown)):''}
     ${mrow('Description',esc(e.description||'—'))}
