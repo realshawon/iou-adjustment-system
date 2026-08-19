@@ -69,13 +69,14 @@ button:disabled{opacity:.6;cursor:default}
         <div><label>Amount (BDT) *</label><input id="amount" type="number" step="0.01" placeholder="0"></div>
       </div>
 
-      <label>Expense Category *</label>
-      <select id="category">
+      <label>Submission Category *</label>
+      <select id="category" onchange="onCategoryChange()">
         <option value="">— select category —</option>
         <option>Travel</option><option>Meals</option><option>Supplies</option>
         <option>Software</option><option>Equipment</option>
         <option>Client Entertainment</option><option>Utilities</option><option>Other</option>
       </select>
+      <input id="categoryOther" placeholder="Type the category" style="display:none;margin-top:8px">
 
       <label>Vendor Name (optional)</label><input id="vendor" placeholder="e.g. TravelCorp, Restaurant name">
 
@@ -125,6 +126,13 @@ document.getElementById('date').valueAsDate=new Date();
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 document.getElementById('receipt').addEventListener('change',()=>renderFileList());
 
+function onCategoryChange(){
+  const oth=$('categoryOther');
+  const isOther=$('category').value==='Other';
+  oth.style.display=isOther?'block':'none';
+  if(isOther){oth.focus();}else{oth.value='';}
+}
+
 function getIOUs(){try{const r=localStorage.getItem('ious');return r?JSON.parse(r):[];}catch(e){return [];}}
 function saveIOUs(v){localStorage.setItem('ious',JSON.stringify(v));}
 function newId(){return 'IOU-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+Math.random().toString(36).slice(2,7).toUpperCase();}
@@ -141,7 +149,7 @@ function validate(v,receipt){
   if(!v.department) e.push('Department is required');
   if(!v.designation) e.push('Designation is required');
   if(!v.date) e.push('Submission date is required');
-  if(!v.category) e.push('Expense category is required');
+  if(!v.category) e.push($('category').value==='Other'?'Please type the category name':'Submission category is required');
   if(!v.description) e.push('Description / purpose is required');
   if(!v.amount||Number(v.amount)<=0) e.push('Amount must be greater than 0');
   if(!/.+@.+\..+/.test(v.submitterEmail)) e.push('A valid email of yours is required');
@@ -198,6 +206,7 @@ function syncToSharePoint(iou,receiptFiles){
 async function submitIOU(){
   const m=$('msg'),btn=$('sbtn');
   const v={};F.forEach(k=>v[k]=$(k).value.trim());
+  if(v.category==='Other'){ v.category=$('categoryOther').value.trim(); }
   const receiptFiles=Array.from($('receipt').files||[]);
   const receipt=receiptFiles[0];
 
@@ -244,6 +253,7 @@ function resetForm(){
   F.forEach(k=>$(k).value='');
   $('receipt').value='';
   $('fileList').innerHTML='';
+  $('categoryOther').value='';$('categoryOther').style.display='none';
   $('date').valueAsDate=new Date();
   $('msg').style.display='none';
   $('doneBox').classList.remove('on');
