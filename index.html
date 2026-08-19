@@ -178,7 +178,9 @@ function openDetail(id){
     <button class="mclose" onclick="closeDetail()">✕</button>
     <h3>${esc(e.id)}</h3>
     <p class="sub">${withPill(stage)} &nbsp;·&nbsp; currently with <b>${esc(WITH[stage]||stage)}</b></p>
-    ${mrow('Submitter',esc(e.name||'—'))}
+    ${mrow('Submitter',esc(e.name||'—')+(e.employeeId?' <span class="muted">· ID '+esc(e.employeeId)+'</span>':''))}
+    ${mrow('Department',esc(e.department||'—'))}
+    ${mrow('Designation',esc(e.designation||'—'))}
     ${mrow('Email',esc(e.submitterEmail||'—'))}
     ${mrow('WhatsApp',esc(e.submitterWhatsapp||'—'))}
     ${mrow('Category',esc(e.category||'—'))}
@@ -205,7 +207,7 @@ function currentFiltered(){
     if(cat && e.category!==cat) return false;
     if(mon && monthKey(e)!==mon) return false;
     if(q){
-      const hay=[e.id,e.name,e.vendor,e.category,e.description].map(x=>String(x||'').toLowerCase()).join(' ');
+      const hay=[e.id,e.name,e.employeeId,e.department,e.designation,e.vendor,e.category,e.description].map(x=>String(x||'').toLowerCase()).join(' ');
       if(!hay.includes(q)) return false;
     }
     return true;
@@ -239,27 +241,28 @@ function render(){
   let rows='',lastKey=null;
   for(const e of sorted){
     const k=monthKey(e);
-    if(!isFiltered&&k!==lastKey){lastKey=k;const cnt=sorted.filter(x=>monthKey(x)===k).length;rows+=`<tr class="mhead"><td colspan="6">${monthLabel(k)}<span class="cnt">${cnt} submission${cnt>1?'s':''}</span></td></tr>`;}
+    if(!isFiltered&&k!==lastKey){lastKey=k;const cnt=sorted.filter(x=>monthKey(x)===k).length;rows+=`<tr class="mhead"><td colspan="7">${monthLabel(k)}<span class="cnt">${cnt} submission${cnt>1?'s':''}</span></td></tr>`;}
     const stage=stageOf(e);
     rows+=`<tr onclick="openDetail('${esc(e.id)}')">
       <td><span class="reflink">${esc(e.id)}</span></td>
       <td><span class="avatar">${initials(e.name)}</span>${esc(e.name||'—')}</td>
+      <td>${esc(e.department||'—')}</td>
       <td>${esc(e.category||'—')}</td>
       <td class="amt">${money(e.amount)}</td>
       <td>${stepper(stage)}</td>
       <td>${withPill(stage)}</td></tr>`;
   }
-  document.getElementById('trackWrap').innerHTML='<table><thead><tr><th>IOU ID</th><th>Submitter</th><th>Category</th><th class="amt">Amount</th><th>Stage</th><th>Currently with</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  document.getElementById('trackWrap').innerHTML='<table><thead><tr><th>IOU ID</th><th>Submitter</th><th>Dept</th><th>Category</th><th class="amt">Amount</th><th>Stage</th><th>Currently with</th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
 
 function exportExcel(){
   const rows=currentFiltered().sort((a,b)=>String(b.submittedAt||'').localeCompare(String(a.submittedAt||'')));
-  const head=['IOU ID','Submitter','Email','Category','Vendor','Amount','Stage','Currently With','Description','Submitted At'];
+  const head=['IOU ID','Submitter','Employee ID','Department','Designation','Email','Category','Vendor','Amount','Stage','Currently With','Description','Submitted At'];
   const csvEsc=v=>{const s=String(v==null?'':v);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
   const lines=[head.map(csvEsc).join(',')];
   for(const e of rows){
     const stage=stageOf(e);
-    lines.push([e.id,e.name,e.submitterEmail,e.category,e.vendor,e.amount,stage,WITH[stage]||stage,e.description,e.submittedAt].map(csvEsc).join(','));
+    lines.push([e.id,e.name,e.employeeId,e.department,e.designation,e.submitterEmail,e.category,e.vendor,e.amount,stage,WITH[stage]||stage,e.description,e.submittedAt].map(csvEsc).join(','));
   }
   const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
@@ -273,7 +276,8 @@ const LIVE_FEED_URL='https://hook.eu1.make.com/bj6amccm2xi4l8958io8r8ajh9cyjsel'
 
 function mapLiveItem(r){
   return {
-    id:r.id, name:r.name, date:r.date, category:r.category, vendor:r.vendor,
+    id:r.id, name:r.name, employeeId:r.employeeId, department:r.department, designation:r.designation,
+    date:r.date, category:r.category, vendor:r.vendor,
     description:r.description, breakdown:r.breakdown, amount:Number(r.amount)||0,
     submitterEmail:r.submitterEmail, submitterWhatsapp:r.submitterWhatsapp,
     managerEmail:r.managerEmail, receiptFileName:r.receiptFileName,

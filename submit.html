@@ -43,7 +43,26 @@ button:disabled{opacity:.6;cursor:default}
     <p class="sub">AKSID Corporation Limited · IOU adjustment claim</p>
 
     <div id="formBox">
-      <label>Employee Name *</label><input id="name" placeholder="Your full name">
+      <div class="row">
+        <div><label>Employee Name *</label><input id="name" placeholder="Your full name"></div>
+        <div><label>Employee ID *</label><input id="employeeId" placeholder="e.g. 190200397"></div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Department *</label>
+          <select id="department">
+            <option value="">— select department —</option>
+            <option>Head Office</option><option>Administration</option><option>Finance and Accounts</option>
+            <option>Audit</option><option>Human Resources</option><option>MIS / IT</option>
+            <option>Marketing and Brand</option><option>Purchase</option><option>Management</option>
+            <option>Construction Team</option><option>Engineering Team</option><option>Logistics</option>
+            <option>Sales Team - SIKA</option><option>Institution Sales</option><option>Retail Sales</option>
+            <option>Corporate Sales</option><option>Project Sales</option><option>Crossgate</option><option>Ortrio</option>
+          </select>
+        </div>
+        <div><label>Designation *</label><input id="designation" placeholder="e.g. Executive, Manager"></div>
+      </div>
 
       <div class="row">
         <div><label>Expense Date *</label><input id="date" type="date"></div>
@@ -100,7 +119,7 @@ button:disabled{opacity:.6;cursor:default}
 
 <script>
 const IOU_SUBMIT_WEBHOOK='https://hook.eu1.make.com/a3vf4768wftyf628o350vzb65kv3cr9u';
-const F=['name','date','category','vendor','description','breakdown','amount','submitterEmail','submitterWhatsapp','managerName','managerEmail','managerWhatsapp'];
+const F=['name','employeeId','department','designation','date','category','vendor','description','breakdown','amount','submitterEmail','submitterWhatsapp','managerName','managerEmail','managerWhatsapp'];
 const $=id=>document.getElementById(id);
 document.getElementById('date').valueAsDate=new Date();
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -118,6 +137,9 @@ function showErr(list){
 function validate(v,receipt){
   const e=[];
   if(!v.name) e.push('Employee name is required');
+  if(!v.employeeId) e.push('Employee ID is required');
+  if(!v.department) e.push('Department is required');
+  if(!v.designation) e.push('Designation is required');
   if(!v.date) e.push('Expense date is required');
   if(!v.category) e.push('Expense category is required');
   if(!v.description) e.push('Description / purpose is required');
@@ -156,7 +178,8 @@ function renderFileList(){
 
 function syncToSharePoint(iou,receiptFiles){
   const body={
-    id:iou.id,name:iou.name,date:iou.date,category:iou.category,vendor:iou.vendor,
+    id:iou.id,name:iou.name,employeeId:iou.employeeId,department:iou.department,designation:iou.designation,
+    date:iou.date,category:iou.category,vendor:iou.vendor,
     description:iou.description,breakdown:iou.breakdown,amount:iou.amount,
     submitterEmail:iou.submitterEmail,submitterWhatsapp:iou.submitterWhatsapp,
     managerEmail:iou.managerEmail,managerWhatsapp:iou.managerWhatsapp,
