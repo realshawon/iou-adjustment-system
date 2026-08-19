@@ -269,13 +269,42 @@ function exportExcel(){
   URL.revokeObjectURL(url);
 }
 
-function load(){
+const LIVE_FEED_URL='https://hook.eu1.make.com/bj6amccm2xi4l8958io8r8ajh9cyjsel';
+
+function mapLiveItem(r){
+  return {
+    id:r.id, name:r.name, date:r.date, category:r.category, vendor:r.vendor,
+    description:r.description, breakdown:r.breakdown, amount:Number(r.amount)||0,
+    submitterEmail:r.submitterEmail, submitterWhatsapp:r.submitterWhatsapp,
+    managerEmail:r.managerEmail, receiptFileName:r.receiptFileName,
+    stage:Number(r.stage)||1, status:r.status, submittedAt:r.submittedAt,
+    history:[]
+  };
+}
+
+async function fetchLive(){
+  const res=await fetch(LIVE_FEED_URL,{cache:'no-store'});
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  const text=await res.text();
+  let raw;
+  try{ raw=JSON.parse(text); }catch(e){ return []; } // tolerate malformed empty-list responses
+  if(!Array.isArray(raw)) return [];
+  return raw.filter(r=>r&&r.id).map(mapLiveItem);
+}
+
+async function load(){
   try{
-    ALL_EX=getIOUs();
+    ALL_EX=await fetchLive();
+    saveIOUsCache(ALL_EX);
     setBanner(true);
     render();
-  }catch(err){setBanner(false,String(err));}
+  }catch(err){
+    ALL_EX=getIOUs();
+    setBanner(ALL_EX.length>0,'Live connection unavailable — showing last known data. ('+String(err.message||err)+')');
+    render();
+  }
 }
+function saveIOUsCache(list){ try{ localStorage.setItem('ious',JSON.stringify(list)); }catch(e){} }
 load();
 
 const REFRESH_MS=30000;
