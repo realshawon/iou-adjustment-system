@@ -190,8 +190,14 @@ function openDetail(id){
     ${e.breakdown?mrow('Cost breakdown',esc(e.breakdown)):''}
     ${mrow('Description',esc(e.description||'—'))}
     ${mrow('Concern Department Head',esc(e.managerName||e.managerEmail||'—'))}
-    ${mrow('Receipts',e.receiptFileName?String(e.receiptFileName).split(',').map(s=>esc(s.trim())).filter(Boolean).join('<br>'):'<span class="muted">No file attached</span>')}
-    <div class="sec">Approval trail</div>${trail||'<div class="muted" style="font-size:13px">—</div>'}`;
+    ${mrow('Receipts',receiptsCell(e))}`;
+}
+
+function receiptsCell(e){
+  const names=String(e.receiptFileName||'').split(',').map(s=>s.trim()).filter(Boolean);
+  if(!names.length) return '<span class="muted">No file attached</span>';
+  const urls=Array.isArray(e.receiptUrls)?e.receiptUrls:[];
+  return names.map((n,i)=>urls[i]?`<a href="${esc(urls[i])}" target="_blank" rel="noopener" style="color:#2a6df4;text-decoration:underline;font-weight:600">${esc(n)} ↗</a>`:esc(n)).join('<br>');
 }
 
 const monthKey=e=>{const d=e.date||e.submittedAt;if(!d)return '9999-99';const dt=new Date(d);if(isNaN(dt))return '9999-99';return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');};
@@ -281,6 +287,7 @@ function mapLiveItem(r){
     description:r.description, breakdown:r.breakdown, amount:Number(r.amount)||0,
     submitterEmail:r.submitterEmail, submitterWhatsapp:r.submitterWhatsapp,
     managerEmail:r.managerEmail, receiptFileName:r.receiptFileName,
+    receiptUrls:Array.isArray(r.receiptUrls)?r.receiptUrls:(r.receiptUrl?[r.receiptUrl]:[]),
     stage:Number(r.stage)||1, status:r.status, submittedAt:r.submittedAt,
     history:[]
   };
