@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AKSID IOU — Sign in</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:#f5f6fa; color:#111; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:1.5rem; }
+  .card { width:100%; max-width:420px; background:#fff; border-radius:14px; padding:2rem; box-shadow:0 8px 32px rgba(0,0,0,.08); }
+  .logo { height:36px; margin-bottom:1rem; }
+  h1 { font-size:1.5rem; margin:0 0 .25rem; }
+  p.sub { margin:0 0 1.5rem; color:#666; font-size:.95rem; }
+  label { display:block; font-size:.85rem; color:#333; margin-bottom:.35rem; margin-top:.9rem; }
+  input { width:100%; padding:.7rem .8rem; border:1px solid #d0d4dc; border-radius:8px; font-size:1rem; background:#fafbfc; }
+  input:focus { outline:none; border-color:#2a6df4; background:#fff; }
+  button { width:100%; margin-top:1.3rem; padding:.8rem; background:#2a6df4; color:#fff; border:none; border-radius:8px; font-size:1rem; font-weight:600; cursor:pointer; }
+  button:disabled { background:#9ca3af; cursor:wait; }
+  .err { margin-top:1rem; padding:.7rem; background:#fee2e2; border:1px solid #fecaca; color:#b91c1c; border-radius:8px; font-size:.9rem; }
+  .foot { margin-top:1.2rem; font-size:.8rem; color:#888; text-align:center; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <img class="logo" src="https://images.squarespace-cdn.com/content/v1/61b1d88771230e2244b14213/de522f80-4556-42c4-af20-e3687e746991/AKSID-HORIZONTAL-LOGO.png?format=750w" alt="AKSID">
+    <h1>AKSID IOU</h1>
+    <p class="sub">এই aksid ERP-এর একই Employee ID অথবা email ও password দিয়ে সাইন ইন করুন। / Sign in with the same Employee ID or email and password you use on erp.aksidcorp.com.</p>
+
+    <form id="f">
+      <label for="email">Employee ID or Email</label>
+      <input id="email" name="email" type="text" autocomplete="username" required>
+
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required>
+
+      <button id="btn" type="submit">Sign in</button>
+    </form>
+
+    <div id="err" class="err" hidden></div>
+
+    <p class="foot">Password ভুলে গেলে HR-কে বলুন — তারা ERP থেকে reset করতে পারবে। / If you've forgotten your password, ask HR to reset it in the ERP.</p>
+  </div>
+
+  <script>
+    fetch('/api/me').then(r => { if (r.ok) location.replace(new URLSearchParams(location.search).get('next') || '/'); });
+
+    const f = document.getElementById('f');
+    const btn = document.getElementById('btn');
+    const errBox = document.getElementById('err');
+    f.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errBox.hidden = true;
+      btn.disabled = true; btn.textContent = 'Signing in…';
+      try {
+        const r = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: document.getElementById('email').value, password: document.getElementById('password').value }),
+        });
+        const j = await r.json();
+        if (!r.ok || !j.ok) { throw new Error(j.error || 'Sign in failed.'); }
+        const next = new URLSearchParams(location.search).get('next') || '/';
+        location.replace(next);
+      } catch (err) {
+        errBox.textContent = err.message; errBox.hidden = false;
+        btn.disabled = false; btn.textContent = 'Sign in';
+      }
+    });
+  </script>
+</body>
+</html>
