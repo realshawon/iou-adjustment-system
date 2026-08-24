@@ -1,36 +1,28 @@
 // Approval relay. Takes the decision from approve.html and forwards it to the
-// Make.com approval webhook.
-//
-// Open by design (2026-08-24): no login. Whoever opens the approval link from
-// their email can approve, and types their own name for the record — the same
-// trust model the Expense tracker at expense.aksidcorp.com already uses.
-// This replaced a version that required an ERP session and checked the
-// signed-in identity against who the IOU was routed to; Shawon asked for the
-// two systems to behave the same way.
-const APPROVAL_HOOK = 'https://hook.eu1.make.com/qynuydubdyor015k3ogwyacay2lwefu5';
+// Make.com approval webhook. Login required — the approver identity comes from
+// the session, not from the client.
 
-async function readBody(req) {
-  let body = req.body;
-  if (typeof body === 'string') {
-    try { return JSON.parse(body); } catch { return {}; }
-  }
-  if (body) return body;
-  const chunks = [];
-  for await (const c of req) chunks.push(c);
-  const raw = Buffer.concat(chunks).toString('utf8');
-  try { return raw ? JSON.parse(raw) : {}; } catch { return {}; }
-}
+import { randomUUID } from 'crypto';
+import { requireSession } from './_auth.js';
+
+const APPROVAL_HOOK = process.env.IOU_APPROVAL_WEBHOOK_URL;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed.' });
 
-  const body = await readBody(req);
-  const { id, action, stage, amount, notes, approver } = body || {};
+  const session = await requireSession(req, res);
+  if (!session) return;
+
+  if (!APPROVAL_HOOK) {
+    return res.status(500).json({ ok: false, error: 'IOU_APPROVAL_WEBHOOK_URL is not configured.' });
+  }
+
+  const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+  const { id, action, stage, amount, notes } = body;
+  const approver = session.name;
+
   if (!id || !action || !stage) {
     return res.status(400).json({ ok: false, error: 'Missing id, action, or stage.' });
-  }
-  if (!approver || !String(approver).trim()) {
-    return res.status(400).json({ ok: false, error: 'Your name is required so the approval can be recorded.' });
   }
   if (!amount || Number(amount) <= 0) {
     return res.status(400).json({ ok: false, error: 'A valid amount is required.' });
@@ -40,6 +32,9 @@ export default async function handler(req, res) {
   }
 
   try {
+    const eventId = randomUUID();
+    const idempotencyKey = `${id}-${stage}-${action}`;
+
     const r = await fetch(APPROVAL_HOOK, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -48,6 +43,11 @@ export default async function handler(req, res) {
         amount: Number(amount),
         approver: String(approver).trim(),
         notes: notes || '',
+        eventId,
+        eventType: 'iou.approval',
+        idempotencyKey,
+        timestamp: new Date().toISOString(),
+        source: 'iou-web-app',
       }),
     });
     if (!r.ok) throw new Error('HTTP ' + r.status);

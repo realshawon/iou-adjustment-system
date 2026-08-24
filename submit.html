@@ -119,13 +119,21 @@ button:disabled{opacity:.6;cursor:default}
 </div>
 
 <script>
-const IOU_SUBMIT_WEBHOOK='https://hook.eu1.make.com/a3vf4768wftyf628o350vzb65kv3cr9u';
+// Webhook URL is server-side only (api/submit.js) — never exposed to the browser.
 const F=['name','employeeId','department','designation','date','category','vendor','description','breakdown','amount','submitterEmail','submitterWhatsapp','managerName','managerEmail','managerWhatsapp'];
 const $=id=>document.getElementById(id);
 document.getElementById('date').valueAsDate=new Date();
 
-// Open form, no login (2026-08-24) — matches the Expense tracker. Name and
-// email are remembered locally so a repeat submitter isn't retyping them.
+// Login required — redirect if not signed in.
+(async()=>{
+  try{
+    const r=await fetch('/api/me',{cache:'no-store'});
+    if(!r.ok) throw new Error();
+  }catch{
+    location.replace('/login.html?next='+encodeURIComponent(location.pathname+location.search));
+    return;
+  }
+})();
 try{
   const saved=JSON.parse(localStorage.getItem('iouSubmitter')||'{}');
   if(saved.email) $('submitterEmail').value=saved.email;
@@ -282,20 +290,17 @@ function renderFileList(){
 
 function syncToSharePoint(iou,receiptFiles){
   const body={
-    id:iou.id,name:iou.name,employeeId:iou.employeeId,department:iou.department,designation:iou.designation,
+    id:iou.id,employeeId:iou.employeeId,department:iou.department,designation:iou.designation,
     date:iou.date,category:iou.category,vendor:iou.vendor,
     description:iou.description,breakdown:iou.breakdown,amount:iou.amount,
     submitterEmail:iou.submitterEmail,submitterWhatsapp:iou.submitterWhatsapp,
-    managerEmail:iou.managerEmail,managerWhatsapp:iou.managerWhatsapp,
+    managerName:iou.managerName||'',managerEmail:iou.managerEmail,managerWhatsapp:iou.managerWhatsapp,
     receiptFileName:iou.receiptFileName,receiptCount:iou.receiptCount,submittedAt:iou.submittedAt
   };
   if(receiptFiles&&receiptFiles.length){
     body.receiptFiles=receiptFiles;
-    // first file also exposed flat, so single-file automations keep working
-    body.receiptFileBase64=receiptFiles[0].base64;
-    body.receiptContentType=receiptFiles[0].contentType;
   }
-  return fetch(IOU_SUBMIT_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+  return fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
     .then(r=>r.json()).catch(()=>null);
 }
 

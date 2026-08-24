@@ -46,9 +46,8 @@ button:disabled{opacity:.6;cursor:default}
 
       <div class="warn" id="noCtx" style="display:none">This link is missing details. Please open the approval link from your email again.</div>
 
-      <label>Your Name *</label>
-      <input id="approver" type="text" placeholder="Who is approving this?">
-      <p class="muted" style="margin-top:4px">Recorded against this decision in the approval trail.</p>
+      <input id="approver" type="hidden" value="">
+      <p class="muted" style="margin-top:4px">Approving as the signed-in user.</p>
 
       <label>Approved Amount (BDT) *</label>
       <input id="amount" type="number" step="0.01" placeholder="0">
@@ -75,6 +74,18 @@ button:disabled{opacity:.6;cursor:default}
 </div>
 
 <script>
+// Login required — redirect if not signed in.
+(async()=>{
+  try{
+    const r=await fetch('/api/me',{cache:'no-store'});
+    if(!r.ok) throw new Error();
+  }catch{
+    location.replace('/login.html?next='+encodeURIComponent(location.pathname+location.search));
+    return;
+  }
+  init();
+})();
+function init(){
 const q=new URLSearchParams(location.search);
 const id=q.get('id'), stage=q.get('stage'), iou=q.get('iou')||'', amt=q.get('amt')||'';
 const STAGES={1:'Stage 1 of 4 · Concern Department Head',2:'Stage 2 of 4 · Audit',3:'Stage 3 of 4 · Accounts',4:'Stage 4 of 4 · Top Management or Others'};
@@ -85,29 +96,21 @@ $('stageLbl').textContent=STAGES[stage]||('Stage '+stage);
 $('iouLbl').textContent=iou||('#'+id);
 if(amt) $('amount').value=amt;
 
-// Open approval, same trust model as the Expense tracker: whoever opens the
-// link from their email approves, and types their own name for the record.
-// The name is remembered locally so a regular approver isn't retyping it.
-try{ const saved=localStorage.getItem('iouApprover'); if(saved) $('approver').value=saved; }catch(e){}
-
 let busy=false;
 async function act(action){
   if(busy) return;
   const m=$('msg');
-  const approver=$('approver').value.trim();
   const amount=$('amount').value.trim();
   const notes=$('notes').value.trim();
-  if(!approver){m.className='msg bad';m.style.display='block';m.textContent='Please enter your name.';return;}
   if(!amount||Number(amount)<=0){m.className='msg bad';m.textContent='Please enter a valid amount.';return;}
   if(action==='reject'&&!notes){m.className='msg bad';m.textContent='Please give a reason in Notes when rejecting.';return;}
   busy=true;$('btnA').disabled=true;$('btnR').disabled=true;
   m.className='msg';m.style.display='block';m.textContent='Submitting…';
   try{
     const r=await fetch('/api/approve',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({id:id,action:action,stage:stage,amount:Number(amount),notes:notes,approver:approver})});
+      body:JSON.stringify({id:id,action:action,stage:stage,amount:Number(amount),notes:notes})});
     const j=await r.json().catch(()=>({}));
     if(!r.ok||!j.ok) throw new Error(j.error||('HTTP '+r.status));
-    try{ localStorage.setItem('iouApprover',approver); }catch(e){}
     $('formBox').style.display='none';
     if(action==='approve'){
       $('doneTitle').textContent='✓ Approved';
@@ -124,6 +127,7 @@ async function act(action){
     m.className='msg bad';m.textContent='Could not submit ('+e.message+'). Please try again.';
   }
 }
+} // end init()
 </script>
 </body>
 </html>

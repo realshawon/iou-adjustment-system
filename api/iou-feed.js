@@ -12,10 +12,11 @@
 // Nothing here is user-specific, so a single shared entry is safe.
 import { getCachedFeed } from './_feedcache.js';
 
-const FEED_URL = 'https://hook.eu1.make.com/bj6amccm2xi4l8958io8r8ajh9cyjsel';
+const FEED_URL = process.env.IOU_FEED_WEBHOOK_URL;
 const TTL_MS = 60_000;
 
 async function fetchFeed() {
+  if (!FEED_URL) throw new Error('IOU_FEED_WEBHOOK_URL is not configured.');
   const upstream = await fetch(FEED_URL, { cache: 'no-store' });
   if (!upstream.ok) throw new Error(`Data source error (${upstream.status}).`);
   const text = await upstream.text();
