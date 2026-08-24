@@ -98,7 +98,7 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f7f9fc}tbody tr:hover .reflin
     <div class="toolbar">
       <input id="searchBox" class="searchbox" type="text" placeholder="Search by ID, submitter, vendor…" oninput="render()">
       <button class="r" onclick="exportExcel()">↓ Export Excel</button>
-      <button class="r" onclick="load()">↻ Refresh</button>
+      <button class="r" onclick="load(true)">↻ Refresh</button>
     </div>
     <div id="trackWrap"><div class="empty">Loading…</div></div>
     <div class="legend">
@@ -151,11 +151,46 @@ function withPill(stage){
   if(stage==='Rejected')return '<span class="pill rej">Rejected</span>';
   return '<span class="pill cur">'+(WITH[stage]||stage)+'</span>';
 }
+// Honest freshness. "Last updated" is when the DATA was actually read from
+// SharePoint via Make — not when this page last re-rendered, which is what it
+// used to show and which looked live even when nothing had been re-read.
+function agoText(d){
+  if(!d) return '';
+  const s=Math.max(0,Math.round((Date.now()-d.getTime())/1000));
+  if(s<10) return 'just now';
+  if(s<60) return s+'s ago';
+  if(s<3600) return Math.round(s/60)+'m ago';
+  return Math.round(s/3600)+'h ago';
+}
 function setBanner(ok,msg){
   const b=document.getElementById('banner');
-  if(ok){b.className='banner';document.getElementById('bTitle').textContent='System operational — all OK';document.getElementById('bSub').textContent='Records loaded successfully';}
-  else{b.className='banner bad';document.getElementById('bTitle').textContent='Could not read records';document.getElementById('bSub').textContent=msg||'Local storage unavailable';}
-  document.getElementById('bMeta').innerHTML='Last refreshed<br>'+new Date().toLocaleString();
+  const stale=FEED_META.source==='stale-on-error';
+  if(ok&&!stale){
+    b.className='banner';
+    document.getElementById('bTitle').textContent='System operational — all OK';
+    document.getElementById('bSub').textContent='Records loaded successfully';
+  }else if(ok&&stale){
+    // Make is unreachable but we still have the last good copy — say so rather
+    // than implying the numbers are current.
+    b.className='banner bad';
+    document.getElementById('bTitle').textContent='Showing last known data';
+    document.getElementById('bSub').textContent='The data source is unreachable — figures may be out of date.';
+  }else{
+    b.className='banner bad';
+    document.getElementById('bTitle').textContent='Could not read records';
+    document.getElementById('bSub').textContent=msg||'Data source unavailable';
+  }
+  const d=FEED_META.fetchedAt;
+  document.getElementById('bMeta').innerHTML='Last updated<br>'+(d?(d.toLocaleTimeString()+' · '+agoText(d)):'—');
+  // The "Live" badge only claims live when the data really is within the cache
+  // window and came back cleanly.
+  const tag=document.querySelector('.panel h2 .tag');
+  if(tag){
+    const live=ok&&!stale;
+    tag.textContent=live?'Live':'Stale';
+    tag.style.background=live?'':'#fdeced';
+    tag.style.color=live?'':'#a3242e';
+  }
 }
 
 function money(n){return '৳'+Math.round(Number(n||0)).toLocaleString('en-US');}
@@ -330,9 +365,18 @@ function mapLiveItem(r){
   };
 }
 
-async function fetchLive(){
-  const res=await fetch(LIVE_FEED_URL,{cache:'no-store'});
+// Freshness of the DATA (when it was last read from source), not of this page.
+let FEED_META={fetchedAt:null,fresh:true,source:null};
+
+async function fetchLive(force){
+  const res=await fetch(LIVE_FEED_URL+(force?'?fresh=1':''),{cache:'no-store'});
   if(!res.ok) throw new Error('HTTP '+res.status);
+  const at=res.headers.get('X-Feed-Fetched-At');
+  FEED_META={
+    fetchedAt: at?new Date(at):null,
+    fresh: res.headers.get('X-Feed-Fresh')!=='0',
+    source: res.headers.get('X-Feed-Source'),
+  };
   const text=await res.text();
   let raw;
   try{ raw=JSON.parse(text); }catch(e){ return []; } // tolerate malformed empty-list responses
@@ -340,9 +384,12 @@ async function fetchLive(){
   return raw.filter(r=>r&&r.id).map(mapLiveItem);
 }
 
-async function load(){
+// force=true is used by the manual Refresh button only, and bypasses the
+// server-side TTL. The 30s auto-refresh deliberately does NOT force, so it is
+// served from the cache and costs no Make operations most of the time.
+async function load(force){
   try{
-    ALL_EX=await fetchLive();
+    ALL_EX=await fetchLive(force);
     saveIOUsCache(ALL_EX);
     setBanner(true);
     render();
