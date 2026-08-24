@@ -86,7 +86,7 @@ button:disabled{opacity:.6;cursor:default}
       <p class="muted" style="margin-top:4px">If filled, the parts must add up to the amount above.</p>
 
       <div class="row">
-        <div><label>Your Email *</label><input id="submitterEmail" type="email" placeholder="you@aksidcorp.com"></div>
+        <div><label>Your Email *</label><input id="submitterEmail" type="email" placeholder="you@aksidcorp.com" readonly style="background:#f4f6f9"></div>
         <div><label>Your WhatsApp *</label><input id="submitterWhatsapp" type="tel" placeholder="+88XXXXXXXXXX"></div>
       </div>
 
@@ -123,6 +123,16 @@ const IOU_SUBMIT_WEBHOOK='https://hook.eu1.make.com/a3vf4768wftyf628o350vzb65kv3
 const F=['name','employeeId','department','designation','date','category','vendor','description','breakdown','amount','submitterEmail','submitterWhatsapp','managerName','managerEmail','managerWhatsapp'];
 const $=id=>document.getElementById(id);
 document.getElementById('date').valueAsDate=new Date();
+
+// Must be signed in to submit; prefill + lock email to the ERP session so the
+// submitter can't misattribute an IOU to someone else (2026-08-23).
+fetch('/api/me').then(async (r)=>{
+  if(!r.ok){ location.replace('/login.html?next='+encodeURIComponent(location.pathname)); return; }
+  const j=await r.json();
+  const u=j.user||{};
+  if(u.email) document.getElementById('submitterEmail').value=u.email;
+  if(u.name && !document.getElementById('name').value) document.getElementById('name').value=u.name;
+});
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 document.getElementById('receipt').addEventListener('change',()=>renderFileList());
 
