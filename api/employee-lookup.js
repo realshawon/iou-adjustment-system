@@ -10,7 +10,16 @@
 // national ID, no date of birth, nothing else on the employee record.
 import { neon } from '@neondatabase/serverless';
 
-const erpSql = neon(process.env.ERP_DATABASE_URL || process.env.DATABASE_URL);
+// Built lazily. neon() throws when handed an undefined connection string, and
+// at module scope that crashes the whole function before the handler can return
+// a useful error — so resolve it per request instead.
+let _erpSql = null;
+function erp() {
+  const url = process.env.ERP_DATABASE_URL || process.env.DATABASE_URL;
+  if (!url) return null;
+  if (!_erpSql) _erpSql = neon(url);
+  return _erpSql;
+}
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
@@ -20,7 +29,8 @@ export default async function handler(req, res) {
   // Guard against someone probing with an empty-ish or absurd value.
   if (raw.length > 40) return res.status(400).json({ ok: false, error: 'Employee ID is not valid.' });
 
-  if (!process.env.ERP_DATABASE_URL && !process.env.DATABASE_URL) {
+  const erpSql = erp();
+  if (!erpSql) {
     return res.status(503).json({ ok: false, error: 'ERP lookup is not configured yet.' });
   }
 
