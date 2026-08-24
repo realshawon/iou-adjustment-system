@@ -45,7 +45,7 @@ button:disabled{opacity:.6;cursor:default}
     <div id="formBox">
       <div class="row">
         <div><label>Employee Name *</label><input id="name" placeholder="Your full name"></div>
-        <div><label>Employee ID *</label><input id="employeeId" placeholder="e.g. 190200397"></div>
+        <div><label>Employee ID *</label><input id="employeeId" placeholder="e.g. 190200397"><div id="erpHint" style="font-size:12px;margin-top:4px;min-height:16px;color:#6b6b70"></div></div>
       </div>
 
       <div class="row">
@@ -134,6 +134,52 @@ try{
 function rememberSubmitter(){
   try{ localStorage.setItem('iouSubmitter',JSON.stringify({name:$('name').value.trim(),email:$('submitterEmail').value.trim()})); }catch(e){}
 }
+// Pull name / department / designation from the ERP as soon as an Employee ID is
+// entered, so those three fields come from erp.aksidcorp.com rather than from
+// whatever the submitter types. They were previously free-form, which is how
+// IOUs ended up in SharePoint with a blank Department and Designation.
+let erpLocked=false;
+async function lookupEmployee(){
+  const hint=$('erpHint');
+  const code=$('employeeId').value.trim();
+  // Clear any previous ERP fill so a corrected ID can't leave stale values behind.
+  if(erpLocked){ ['name','department','designation'].forEach(id=>{$(id).readOnly=false;$(id).disabled=false;$(id).style.background='';}); erpLocked=false; }
+  if(!code){ hint.textContent=''; hint.style.color='#6b6b70'; return; }
+  hint.textContent='Looking up in ERP…'; hint.style.color='#6b6b70';
+  try{
+    const r=await fetch('/api/employee-lookup?empId='+encodeURIComponent(code),{cache:'no-store'});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok||!j.ok){
+      // Not found is not fatal — the person can still fill the fields in by hand.
+      hint.textContent=(j.error||'Not found in ERP')+' — please fill the fields in yourself.';
+      hint.style.color='#a3242e';
+      return;
+    }
+    const e=j.employee;
+    if(e.name)$('name').value=e.name;
+    if(e.designation)$('designation').value=e.designation;
+    if(e.department){
+      const sel=$('department');
+      // The dropdown labels and the ERP department names don't always match
+      // exactly, so add the ERP's own value rather than silently losing it.
+      if(![...sel.options].some(o=>o.value===e.department)) sel.add(new Option(e.department,e.department));
+      sel.value=e.department;
+    }
+    if(e.email&&!$('submitterEmail').value)$('submitterEmail').value=e.email;
+    if(e.mobile&&!$('submitterWhatsapp').value)$('submitterWhatsapp').value=e.mobile;
+    // Lock what the ERP supplied so it can't be edited into something else.
+    ['name','department','designation'].forEach(id=>{ if($(id).value){ $(id).readOnly=true; $(id).disabled=(id==='department'); $(id).style.background='#f4f6f9'; }});
+    erpLocked=true;
+    hint.innerHTML='✓ Matched in ERP — name, department and designation filled automatically.';
+    hint.style.color='#226b39';
+  }catch(err){
+    hint.textContent='Could not reach the ERP — please fill the fields in yourself.';
+    hint.style.color='#a3242e';
+  }
+}
+document.getElementById('employeeId').addEventListener('change',lookupEmployee);
+document.getElementById('employeeId').addEventListener('blur',lookupEmployee);
+
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 document.getElementById('receipt').addEventListener('change',()=>renderFileList());
 
