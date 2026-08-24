@@ -1,9 +1,12 @@
 // Server-side IOU submission relay. Receives the form payload from the browser,
-// validates it, injects identity from the session, and forwards to Make.com.
-// The Make webhook URL never leaves the server.
+// validates it, and forwards to Make.com. The Make webhook URL never leaves
+// the server — that's the only reason this proxy exists.
+//
+// Open by design: no login required. The IOU submission form is intentionally
+// public (matching the previous direct-to-Make behavior). The ERP employee
+// lookup (api/employee-lookup.js) is the one that requires auth, not this.
 
 import { randomUUID } from 'crypto';
-import { requireSession } from './_auth.js';
 
 const IOU_SUBMIT_WEBHOOK = process.env.IOU_SUBMIT_WEBHOOK_URL;
 
@@ -13,9 +16,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: 'Method not allowed.' });
   }
 
-  const session = await requireSession(req, res);
-  if (!session) return;
-
   if (!IOU_SUBMIT_WEBHOOK) {
     return res.status(500).json({ ok: false, error: 'IOU_SUBMIT_WEBHOOK_URL is not configured.' });
   }
@@ -24,16 +24,19 @@ export default async function handler(req, res) {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     if (!body) return res.status(400).json({ ok: false, error: 'Empty request body.' });
 
-    const { id, employeeId, department, designation, date, category, vendor,
+    const { id, name, employeeId, department, designation, date, category, vendor,
             description, breakdown, amount, submitterEmail, submitterWhatsapp,
             managerName, managerEmail, managerWhatsapp, receiptFiles,
             receiptFileName, receiptCount, submittedAt } = body;
 
-    if (!id || !employeeId || !department || !date || !category || !description) {
+    if (!id || !name || !employeeId || !department || !date || !category || !description) {
       return res.status(400).json({ ok: false, error: 'Missing required fields.' });
     }
     if (!amount || Number(amount) <= 0) {
       return res.status(400).json({ ok: false, error: 'Amount must be greater than 0.' });
+    }
+    if (!submitterEmail || !/.+@.+\..+/.test(submitterEmail)) {
+      return res.status(400).json({ ok: false, error: 'A valid submitter email is required.' });
     }
     if (!managerEmail || !/.+@.+\..+/.test(managerEmail)) {
       return res.status(400).json({ ok: false, error: 'A valid manager email is required.' });
@@ -44,8 +47,8 @@ export default async function handler(req, res) {
 
     const payload = {
       id,
-      name: session.name,
-      employeeId: session.empCode || employeeId,
+      name,
+      employeeId,
       department,
       designation: designation || '',
       date,
@@ -54,7 +57,7 @@ export default async function handler(req, res) {
       description,
       breakdown: breakdown || '',
       amount: Number(amount),
-      submitterEmail: session.email || submitterEmail,
+      submitterEmail,
       submitterWhatsapp: submitterWhatsapp || '',
       managerName: managerName || '',
       managerEmail,

@@ -124,16 +124,7 @@ const F=['name','employeeId','department','designation','date','category','vendo
 const $=id=>document.getElementById(id);
 document.getElementById('date').valueAsDate=new Date();
 
-// Login required — redirect if not signed in.
-(async()=>{
-  try{
-    const r=await fetch('/api/me',{cache:'no-store'});
-    if(!r.ok) throw new Error();
-  }catch{
-    location.replace('/login.html?next='+encodeURIComponent(location.pathname+location.search));
-    return;
-  }
-})();
+// Open form — no login required. ERP employee lookup needs auth separately.
 try{
   const saved=JSON.parse(localStorage.getItem('iouSubmitter')||'{}');
   if(saved.email) $('submitterEmail').value=saved.email;
@@ -290,7 +281,7 @@ function renderFileList(){
 
 function syncToSharePoint(iou,receiptFiles){
   const body={
-    id:iou.id,employeeId:iou.employeeId,department:iou.department,designation:iou.designation,
+    id:iou.id,name:iou.name,employeeId:iou.employeeId,department:iou.department,designation:iou.designation,
     date:iou.date,category:iou.category,vendor:iou.vendor,
     description:iou.description,breakdown:iou.breakdown,amount:iou.amount,
     submitterEmail:iou.submitterEmail,submitterWhatsapp:iou.submitterWhatsapp,
