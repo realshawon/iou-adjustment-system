@@ -73,6 +73,8 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f7f9fc}tbody tr:hover .reflin
     <img class="logo" src="https://images.squarespace-cdn.com/content/v1/61b1d88771230e2244b14213/de522f80-4556-42c4-af20-e3687e746991/AKSID-HORIZONTAL-LOGO.png?format=750w" alt="AKSID Corporation Limited" onerror="this.src='/aksid-logo.png'">
     <div class="titlebox"><h1>IOU — Live Tracker</h1><p class="sub">AKSID Corporation Limited · who submitted, who it's with, what stage · live</p></div>
     <div class="spacer">
+      <select id="withFilter" class="monthsel" onchange="render()"><option value="">Currently with — all</option></select>
+      <select id="deptFilter" class="monthsel" onchange="render()"><option value="">All departments</option></select>
       <select id="categoryFilter" class="monthsel" onchange="render()"><option value="">All categories</option></select>
       <select id="monthFilter" class="monthsel" onchange="render()"><option value="">All months</option></select>
       <a class="newbtn" href="/submit.html">+ New IOU</a>
@@ -85,10 +87,10 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f7f9fc}tbody tr:hover .reflin
   </div>
 
   <div class="cards">
-    <div class="card"><div class="lbl">In approval now</div><div class="val" id="kOpen">—</div><div class="note">awaiting an approver</div></div>
+    <div class="card"><div class="lbl" id="kOpenLbl">In approval now</div><div class="val" id="kOpen">—</div><div class="note" id="kOpenNote">awaiting an approver</div></div>
     <div class="card"><div class="lbl">Approved</div><div class="val ok" id="kApproved">—</div><div class="note">fully approved</div></div>
     <div class="card"><div class="lbl">Rejected</div><div class="val" id="kRej">—</div><div class="note">sent back</div></div>
-    <div class="card"><div class="lbl">Total submissions</div><div class="val" id="kTotal">—</div><div class="note">in the system</div></div>
+    <div class="card"><div class="lbl">Total submissions</div><div class="val" id="kTotal">—</div><div class="note" id="kTotalNote">in the system</div></div>
   </div>
 
   <div class="panel">
@@ -204,14 +206,23 @@ const monthKey=e=>{const d=e.date||e.submittedAt;if(!d)return '9999-99';const dt
 const monthLabel=k=>k==='9999-99'?'No date':new Date(k+'-01').toLocaleString('en-US',{month:'long',year:'numeric'});
 let ALL_EX=[];
 
+// "Currently with" as a human label — the same string shown in the table's last
+// column, so filtering by what you can see does what you expect.
+function withText(e){ return WITH[stageOf(e)] || stageOf(e); }
+function deptText(e){ return (e.department||'').trim() || '—'; }
+
 function currentFiltered(){
   const catSel=document.getElementById('categoryFilter');
   const monSel=document.getElementById('monthFilter');
-  const cat=catSel.value, mon=monSel.value;
+  const withSel=document.getElementById('withFilter');
+  const deptSel=document.getElementById('deptFilter');
+  const cat=catSel.value, mon=monSel.value, wth=withSel.value, dept=deptSel.value;
   const q=(document.getElementById('searchBox').value||'').trim().toLowerCase();
   return ALL_EX.filter(e=>{
     if(cat && e.category!==cat) return false;
     if(mon && monthKey(e)!==mon) return false;
+    if(wth && withText(e)!==wth) return false;
+    if(dept && deptText(e)!==dept) return false;
     if(q){
       const hay=[e.id,e.name,e.employeeId,e.department,e.designation,e.vendor,e.category,e.description].map(x=>String(x||'').toLowerCase()).join(' ');
       if(!hay.includes(q)) return false;
@@ -222,11 +233,9 @@ function currentFiltered(){
 
 function render(){
   const ex=ALL_EX;
-  document.getElementById('kTotal').textContent=ex.length;
-  document.getElementById('kOpen').textContent=ex.filter(e=>['Manager','Audit','Accounts','Top Mgmt'].includes(stageOf(e))).length;
-  document.getElementById('kApproved').textContent=ex.filter(e=>stageOf(e)==='Approved').length;
-  document.getElementById('kRej').textContent=ex.filter(e=>stageOf(e)==='Rejected').length;
-  if(!ex.length){document.getElementById('trackWrap').innerHTML='<div class="empty">No submissions yet. New IOUs will appear here automatically.</div>';return;}
+  if(!ex.length){
+    ['kOpen','kApproved','kRej','kTotal'].forEach(id=>document.getElementById(id).textContent='0');
+    document.getElementById('trackWrap').innerHTML='<div class="empty">No submissions yet. New IOUs will appear here automatically.</div>';return;}
 
   const monSel=document.getElementById('monthFilter');
   const keepMon=monSel.value;
@@ -240,9 +249,37 @@ function render(){
   catSel.innerHTML='<option value="">All categories</option>'+catKeys.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
   if(catKeys.includes(keepCat))catSel.value=keepCat;
 
+  const withSel=document.getElementById('withFilter');
+  const keepWith=withSel.value;
+  const withKeys=[...new Set(ex.map(withText))].sort((a,b)=>a.localeCompare(b));
+  withSel.innerHTML='<option value="">Currently with — all</option>'+withKeys.map(w=>`<option value="${esc(w)}">${esc(w)}</option>`).join('');
+  if(withKeys.includes(keepWith))withSel.value=keepWith;
+
+  const deptSel=document.getElementById('deptFilter');
+  const keepDept=deptSel.value;
+  const deptKeys=[...new Set(ex.map(deptText))].sort((a,b)=>a.localeCompare(b));
+  deptSel.innerHTML='<option value="">All departments</option>'+deptKeys.map(d=>`<option value="${esc(d)}">${esc(d)}</option>`).join('');
+  if(deptKeys.includes(keepDept))deptSel.value=keepDept;
+
   const filter=monSel.value;
-  const isFiltered=!!(filter||catSel.value||document.getElementById('searchBox').value.trim());
+  const isFiltered=!!(filter||catSel.value||withSel.value||deptSel.value||document.getElementById('searchBox').value.trim());
   const sorted=currentFiltered().sort((a,b)=>String(b.submittedAt||'').localeCompare(String(a.submittedAt||'')));
+
+  // Cards count the rows actually on screen, so filtering to a desk shows that
+  // desk's own workload instead of the company-wide totals. ORDER[4] is spelled
+  // 'Top Management or Others' — the old list said 'Top Mgmt', which matched
+  // nothing, so those IOUs were missing from "In approval now".
+  const IN_APPROVAL=['Manager','Audit','Accounts','Top Management or Others'];
+  const DESKS=new Set(IN_APPROVAL.map(s=>WITH[s]||s));
+  document.getElementById('kOpen').textContent=sorted.filter(e=>IN_APPROVAL.includes(stageOf(e))).length;
+  document.getElementById('kApproved').textContent=sorted.filter(e=>stageOf(e)==='Approved').length;
+  document.getElementById('kRej').textContent=sorted.filter(e=>stageOf(e)==='Rejected').length;
+  document.getElementById('kTotal').textContent=sorted.length;
+  const onDesk=withSel.value&&DESKS.has(withSel.value);
+  document.getElementById('kOpenLbl').textContent=onDesk?('Pending with '+withSel.value):'In approval now';
+  document.getElementById('kOpenNote').textContent=onDesk?'waiting on this desk':'awaiting an approver';
+  document.getElementById('kTotalNote').textContent=isFiltered?'matching current filters':'in the system';
+
   if(!sorted.length){document.getElementById('trackWrap').innerHTML='<div class="empty">No submissions match this filter.</div>';return;}
   let rows='',lastKey=null;
   for(const e of sorted){
