@@ -86,7 +86,7 @@ button:disabled{opacity:.6;cursor:default}
       <p class="muted" style="margin-top:4px">If filled, the parts must add up to the amount above.</p>
 
       <div class="row">
-        <div><label>Your Email *</label><input id="submitterEmail" type="email" placeholder="you@aksidcorp.com" readonly style="background:#f4f6f9"></div>
+        <div><label>Your Email *</label><input id="submitterEmail" type="email" placeholder="you@aksidcorp.com"></div>
         <div><label>Your WhatsApp *</label><input id="submitterWhatsapp" type="tel" placeholder="+88XXXXXXXXXX"></div>
       </div>
 
@@ -124,15 +124,16 @@ const F=['name','employeeId','department','designation','date','category','vendo
 const $=id=>document.getElementById(id);
 document.getElementById('date').valueAsDate=new Date();
 
-// Must be signed in to submit; prefill + lock email to the ERP session so the
-// submitter can't misattribute an IOU to someone else (2026-08-23).
-fetch('/api/me').then(async (r)=>{
-  if(!r.ok){ location.replace('/login.html?next='+encodeURIComponent(location.pathname)); return; }
-  const j=await r.json();
-  const u=j.user||{};
-  if(u.email) document.getElementById('submitterEmail').value=u.email;
-  if(u.name && !document.getElementById('name').value) document.getElementById('name').value=u.name;
-});
+// Open form, no login (2026-08-24) — matches the Expense tracker. Name and
+// email are remembered locally so a repeat submitter isn't retyping them.
+try{
+  const saved=JSON.parse(localStorage.getItem('iouSubmitter')||'{}');
+  if(saved.email) $('submitterEmail').value=saved.email;
+  if(saved.name) $('name').value=saved.name;
+}catch(e){}
+function rememberSubmitter(){
+  try{ localStorage.setItem('iouSubmitter',JSON.stringify({name:$('name').value.trim(),email:$('submitterEmail').value.trim()})); }catch(e){}
+}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 document.getElementById('receipt').addEventListener('change',()=>renderFileList());
 
@@ -222,6 +223,7 @@ async function submitIOU(){
 
   const errs=validate(v,receipt);
   if(errs.length){showErr(errs);return;}
+  rememberSubmitter();
   const totalBytes=receiptFiles.reduce((a,f)=>a+f.size,0);
   if(totalBytes>MAX_TOTAL_BYTES){showErr(['Attachments total '+fmtSize(totalBytes)+' — over the 4 MB combined limit. Please remove one or upload smaller files.']);return;}
 

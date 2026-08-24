@@ -2,14 +2,9 @@
   "name": "aksid-iou-webapp",
   "version": "1.0.0",
   "private": true,
-  "description": "AKSID Corporation Limited IOU submission and approval web app (static + Vercel serverless, ERP-authenticated).",
+  "description": "AKSID Corporation Limited IOU submission and approval web app (static + Vercel serverless, open access).",
   "type": "module",
   "engines": {
     "node": ">=18"
-  },
-  "dependencies": {
-    "bcryptjs": "^3.0.3",
-    "jose": "^6.2.9",
-    "pg": "^8.23.0"
   }
 }

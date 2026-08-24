@@ -77,14 +77,6 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f7f9fc}tbody tr:hover .reflin
       <select id="monthFilter" class="monthsel" onchange="render()"><option value="">All months</option></select>
       <a class="newbtn" href="/submit.html">+ New IOU</a>
     </div>
-    <div id="userChip" style="display:none;align-items:center;gap:10px;background:#eef1f6;border:1px solid #e6e8ec;border-radius:12px;padding:6px 12px">
-      <div style="width:32px;height:32px;border-radius:50%;background:#2a6df4;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px" id="userInitial">?</div>
-      <div style="line-height:1.3;font-size:12px">
-        <div style="font-weight:700;font-size:13px" id="userName">—</div>
-        <div class="muted" id="userEmail">—</div>
-      </div>
-      <button class="r" id="signOutBtn" style="margin-left:4px">Sign out</button>
-    </div>
   </div>
 
   <div id="banner" class="banner"><span class="dot"></span>
@@ -288,21 +280,6 @@ function exportExcel(){
 
 const LIVE_FEED_URL='/api/iou-feed';
 
-async function requireSession(){
-  const r=await fetch('/api/me');
-  if(!r.ok){ location.replace('/login.html?next='+encodeURIComponent(location.pathname)); return null; }
-  const j=await r.json();
-  const u=j.user||{};
-  document.getElementById('userChip').style.display='flex';
-  document.getElementById('userInitial').textContent=(u.name||'?').charAt(0).toUpperCase();
-  document.getElementById('userName').textContent=u.name||'—';
-  document.getElementById('userEmail').textContent=u.email||'';
-  return u;
-}
-document.getElementById('signOutBtn').addEventListener('click',()=>{
-  fetch('/api/login',{method:'DELETE'}).finally(()=>location.replace('/login.html'));
-});
-
 function mapLiveItem(r){
   return {
     id:r.id, name:r.name, employeeId:r.employeeId, department:r.department, designation:r.designation,
@@ -318,7 +295,6 @@ function mapLiveItem(r){
 
 async function fetchLive(){
   const res=await fetch(LIVE_FEED_URL,{cache:'no-store'});
-  if(res.status===401){ location.replace('/login.html?next='+encodeURIComponent(location.pathname)); throw new Error('Not signed in'); }
   if(!res.ok) throw new Error('HTTP '+res.status);
   const text=await res.text();
   let raw;
@@ -340,7 +316,7 @@ async function load(){
   }
 }
 function saveIOUsCache(list){ try{ localStorage.setItem('ious',JSON.stringify(list)); }catch(e){} }
-requireSession().then(u=>{ if(u) load(); });
+load();
 
 const REFRESH_MS=30000;
 setInterval(()=>{
