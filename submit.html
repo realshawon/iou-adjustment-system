@@ -139,19 +139,40 @@ function rememberSubmitter(){
 // whatever the submitter types. They were previously free-form, which is how
 // IOUs ended up in SharePoint with a blank Department and Designation.
 let erpLocked=false;
+// Unlock AND clear. Clearing matters: if a previous ID resolved and the next one
+// is refused or not found, leaving the old auto-filled values on screen would
+// attach the wrong person's name/department to the IOU. Only values the ERP
+// filled in are cleared — anything typed by hand is left alone.
+function unlockErpFields(){
+  ['name','department','designation'].forEach(id=>{
+    const el=$(id);
+    el.readOnly=false; el.disabled=false; el.style.background='';
+    if(erpLocked) el.value='';
+  });
+  erpLocked=false;
+}
+function signInLink(){
+  return ' <a href="/login.html?next='+encodeURIComponent(location.pathname+location.search)+'" style="color:#2a6df4;font-weight:700">Sign in with ERP</a>';
+}
 async function lookupEmployee(){
   const hint=$('erpHint');
   const code=$('employeeId').value.trim();
   // Clear any previous ERP fill so a corrected ID can't leave stale values behind.
-  if(erpLocked){ ['name','department','designation'].forEach(id=>{$(id).readOnly=false;$(id).disabled=false;$(id).style.background='';}); erpLocked=false; }
+  if(erpLocked) unlockErpFields();
   if(!code){ hint.textContent=''; hint.style.color='#6b6b70'; return; }
   hint.textContent='Looking up in ERP…'; hint.style.color='#6b6b70';
   try{
     const r=await fetch('/api/employee-lookup?empId='+encodeURIComponent(code),{cache:'no-store'});
     const j=await r.json().catch(()=>({}));
+    if(r.status===401){
+      // Never fall back to unauthenticated free-text entry — say plainly that a
+      // sign-in is needed and offer the link, returning here afterwards.
+      hint.innerHTML='🔒 ERP sign-in is required to look up employee details.'+signInLink();
+      hint.style.color='#a3242e';
+      return;
+    }
     if(!r.ok||!j.ok){
-      // Not found is not fatal — the person can still fill the fields in by hand.
-      hint.textContent=(j.error||'Not found in ERP')+' — please fill the fields in yourself.';
+      hint.textContent=j.error||'Could not look that ID up in the ERP.';
       hint.style.color='#a3242e';
       return;
     }
@@ -173,12 +194,30 @@ async function lookupEmployee(){
     hint.innerHTML='✓ Matched in ERP — name, department and designation filled automatically.';
     hint.style.color='#226b39';
   }catch(err){
-    hint.textContent='Could not reach the ERP — please fill the fields in yourself.';
+    hint.textContent='Could not reach the ERP right now — try again in a moment.';
     hint.style.color='#a3242e';
   }
 }
 document.getElementById('employeeId').addEventListener('change',lookupEmployee);
 document.getElementById('employeeId').addEventListener('blur',lookupEmployee);
+
+// Show up-front whether the lookup is available, so the sign-in prompt isn't a
+// surprise only after typing an ID. The tracker and this form stay usable either
+// way — only the ERP auto-fill needs the login.
+(async function erpStatus(){
+  const hint=$('erpHint');
+  try{
+    const r=await fetch('/api/me',{cache:'no-store'});
+    if(r.ok){
+      const u=(await r.json()).user||{};
+      hint.innerHTML='Signed in as <b>'+(u.name||u.email||'—')+'</b> — enter your Employee ID and details fill in automatically.';
+      hint.style.color='#226b39';
+    }else{
+      hint.innerHTML='🔒 ERP sign-in required to auto-fill name, department and designation.'+signInLink();
+      hint.style.color='#6b6b70';
+    }
+  }catch(e){}
+})();
 
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 document.getElementById('receipt').addEventListener('change',()=>renderFileList());

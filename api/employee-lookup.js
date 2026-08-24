@@ -5,10 +5,17 @@
 // source of truth: erp.aksidcorp.com owns employee.department_id /
 // designation_id, and this reads through those joins live.
 //
-// Read-only and deliberately narrow. It returns only the four fields the IOU
-// form needs plus contact details the form already collects — no salary, no
-// national ID, no date of birth, nothing else on the employee record.
+// AUTHENTICATION REQUIRED (2026-08-24). The IOU tracker and the submission form
+// are deliberately open, but this endpoint is not: without a login it would let
+// anyone walk sequential employee codes and harvest the staff directory. The
+// session is the same ERP-backed one used elsewhere — no password is stored
+// here and nothing sensitive reaches the browser.
+//
+// Scope: a signed-in user may look up THEIR OWN record. Directory-wide lookup is
+// limited to the HR/admin roles that already have that visibility in the ERP, so
+// an ordinary user cannot enumerate colleagues by editing the query string.
 import { neon } from '@neondatabase/serverless';
+import { getSession } from './_auth.js';
 
 // Built lazily. neon() throws when handed an undefined connection string, and
 // at module scope that crashes the whole function before the handler can return
@@ -21,12 +28,23 @@ function erp() {
   return _erpSql;
 }
 
+// Roles whose ERP access already spans the whole staff directory.
+const DIRECTORY_ROLES = new Set(['superadmin', 'admin', 'hr']);
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
 
+  const session = await getSession(req);
+  if (!session) {
+    return res.status(401).json({
+      ok: false,
+      error: 'Sign in with your ERP account to look up employee details.',
+      login: '/login.html',
+    });
+  }
+
   const raw = String(req.query.empId || req.query.id || '').trim();
   if (!raw) return res.status(400).json({ ok: false, error: 'Employee ID is required.' });
-  // Guard against someone probing with an empty-ish or absurd value.
   if (raw.length > 40) return res.status(400).json({ ok: false, error: 'Employee ID is not valid.' });
 
   const erpSql = erp();
@@ -35,6 +53,9 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Only the columns the IOU form needs. Salary, national_id, date_of_birth
+    // and everything else on the employee record are never selected, so they
+    // cannot leak through this endpoint even by accident.
     const rows = await erpSql`
       SELECT e.emp_code, e.full_name, e.email, e.mobile,
              d.name AS department, g.name AS designation
@@ -49,6 +70,18 @@ export default async function handler(req, res) {
       return res.status(404).json({ ok: false, error: 'No active employee found with that ID in the ERP.' });
     }
     const e = rows[0];
+
+    // Authorisation, checked AFTER the row is loaded so the comparison is made
+    // against the real record rather than anything the caller supplied.
+    const isSelf = session.empCode && String(session.empCode).toLowerCase() === String(e.emp_code).toLowerCase();
+    const isDirectory = DIRECTORY_ROLES.has(session.role);
+    if (!isSelf && !isDirectory) {
+      return res.status(403).json({
+        ok: false,
+        error: 'You can only look up your own Employee ID. Enter your own, or ask HR to submit on your behalf.',
+      });
+    }
+
     return res.status(200).json({
       ok: true,
       employee: {

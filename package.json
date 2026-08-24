@@ -2,12 +2,15 @@
   "name": "aksid-iou-webapp",
   "version": "1.0.0",
   "private": true,
-  "description": "AKSID Corporation Limited IOU submission and approval web app (static + Vercel serverless, open access).",
+  "description": "AKSID Corporation Limited IOU submission and approval web app. The tracker and submission form are open; only the ERP employee lookup requires an ERP login.",
   "type": "module",
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^0.10.4"
+    "@neondatabase/serverless": "^0.10.4",
+    "bcryptjs": "^3.0.3",
+    "jose": "^6.2.9",
+    "pg": "^8.23.0"
   }
 }
