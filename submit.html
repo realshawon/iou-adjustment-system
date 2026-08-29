@@ -9,7 +9,14 @@
 :root{color-scheme:light}*{box-sizing:border-box}
 body{margin:0;font-family:'Segoe UI',system-ui,Arial,sans-serif;background:#f4f6f9;color:#1d1d1f;font-size:14px}
 .wrap{max-width:560px;margin:0 auto;padding:20px}
-.logo{height:40px;margin-bottom:14px}
+.logo{height:40px}
+/* Header row: logo left, cross-app navigation right — same placement as the
+   tracker, so the two pages feel like one system. Wraps on narrow screens
+   rather than squashing the logo. */
+.topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.applinks{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.applink{font:inherit;font-size:13px;font-weight:600;padding:8px 12px;border:1px solid #d6dae1;border-radius:9px;background:#fff;color:#2a6df4;text-decoration:none;white-space:nowrap}
+.applink:hover{background:#f4f8ff;border-color:#2a6df4}
 .card{background:#fff;border:1px solid #e6e8ec;border-radius:14px;padding:20px}
 h1{font-size:18px;margin:0 0 2px}.sub{color:#6b6b70;font-size:12.5px;margin:0 0 16px}
 label{display:block;font-size:12px;color:#6b6b70;font-weight:600;margin:12px 0 4px}
@@ -37,7 +44,13 @@ button:disabled{opacity:.6;cursor:default}
 </head>
 <body>
 <div class="wrap">
-  <img class="logo" src="https://images.squarespace-cdn.com/content/v1/61b1d88771230e2244b14213/de522f80-4556-42c4-af20-e3687e746991/AKSID-HORIZONTAL-LOGO.png?format=750w" alt="AKSID" onerror="this.src='/aksid-logo.png'">
+  <div class="topbar">
+    <img class="logo" src="https://images.squarespace-cdn.com/content/v1/61b1d88771230e2244b14213/de522f80-4556-42c4-af20-e3687e746991/AKSID-HORIZONTAL-LOGO.png?format=750w" alt="AKSID" onerror="this.src='/aksid-logo.png'">
+    <div class="applinks">
+      <a class="applink" href="/" title="Open the IOU tracker dashboard">← Dashboard</a>
+      <a class="applink" href="https://expense.aksidcorp.com" title="Open the AKSID Expense tracker">Expense tracker ↗</a>
+    </div>
+  </div>
   <div class="card">
     <h1>Submit an IOU</h1>
     <p class="sub">AKSID Corporation Limited · IOU submission claim</p>
