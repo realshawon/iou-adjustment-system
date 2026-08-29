@@ -166,6 +166,26 @@ function unlockErpFields(){
 function signInLink(){
   return ' <a href="/login.html?next='+encodeURIComponent(location.pathname+location.search)+'" style="color:#2a6df4;font-weight:700">Sign in with ERP</a>';
 }
+// Shared by both fill paths: the automatic self-fill on page load and the
+// explicit Employee ID lookup.
+function applyEmployee(e){
+  if(!e) return;
+  if(e.empCode&&!$('employeeId').value) $('employeeId').value=e.empCode;
+  if(e.name)$('name').value=e.name;
+  if(e.designation)$('designation').value=e.designation;
+  if(e.department){
+    const sel=$('department');
+    // The dropdown labels and the ERP department names don't always match
+    // exactly, so add the ERP's own value rather than silently losing it.
+    if(![...sel.options].some(o=>o.value===e.department)) sel.add(new Option(e.department,e.department));
+    sel.value=e.department;
+  }
+  if(e.email&&!$('submitterEmail').value)$('submitterEmail').value=e.email;
+  if(e.mobile&&!$('submitterWhatsapp').value)$('submitterWhatsapp').value=e.mobile;
+  // Lock what the ERP supplied so it can't be edited into something else.
+  ['name','department','designation'].forEach(id=>{ if($(id).value){ $(id).readOnly=true; $(id).disabled=(id==='department'); $(id).style.background='#f4f6f9'; }});
+  erpLocked=true;
+}
 async function lookupEmployee(){
   const hint=$('erpHint');
   const code=$('employeeId').value.trim();
@@ -188,21 +208,7 @@ async function lookupEmployee(){
       hint.style.color='#a3242e';
       return;
     }
-    const e=j.employee;
-    if(e.name)$('name').value=e.name;
-    if(e.designation)$('designation').value=e.designation;
-    if(e.department){
-      const sel=$('department');
-      // The dropdown labels and the ERP department names don't always match
-      // exactly, so add the ERP's own value rather than silently losing it.
-      if(![...sel.options].some(o=>o.value===e.department)) sel.add(new Option(e.department,e.department));
-      sel.value=e.department;
-    }
-    if(e.email&&!$('submitterEmail').value)$('submitterEmail').value=e.email;
-    if(e.mobile&&!$('submitterWhatsapp').value)$('submitterWhatsapp').value=e.mobile;
-    // Lock what the ERP supplied so it can't be edited into something else.
-    ['name','department','designation'].forEach(id=>{ if($(id).value){ $(id).readOnly=true; $(id).disabled=(id==='department'); $(id).style.background='#f4f6f9'; }});
-    erpLocked=true;
+    applyEmployee(j.employee);
     hint.innerHTML='✓ Matched in ERP — name, department and designation filled automatically.';
     hint.style.color='#226b39';
   }catch(err){
@@ -220,14 +226,28 @@ document.getElementById('employeeId').addEventListener('blur',lookupEmployee);
   const hint=$('erpHint');
   try{
     const r=await fetch('/api/me',{cache:'no-store'});
-    if(r.ok){
-      const u=(await r.json()).user||{};
-      hint.innerHTML='Signed in as <b>'+(u.name||u.email||'—')+'</b> — enter your Employee ID and details fill in automatically.';
-      hint.style.color='#226b39';
-    }else{
+    if(!r.ok){
       hint.innerHTML='🔒 ERP sign-in required to auto-fill name, department and designation.'+signInLink();
       hint.style.color='#6b6b70';
+      return;
     }
+    // Signed in, so we already know who this is — pull their own record straight
+    // away instead of asking them to retype their Employee ID.
+    const u=(await r.json()).user||{};
+    hint.textContent='Signed in as '+(u.name||u.email||'—')+' — loading your details from the ERP…';
+    hint.style.color='#6b6b70';
+    const s=await fetch('/api/employee-lookup',{cache:'no-store'});
+    const j=await s.json().catch(()=>({}));
+    if(!s.ok||!j.ok){
+      // Most often: the ERP account has no linked employee record. Say that
+      // plainly and leave the fields open rather than blocking the form.
+      hint.textContent=j.error||'Could not load your details — please fill the fields in yourself.';
+      hint.style.color='#a3242e';
+      return;
+    }
+    applyEmployee(j.employee);
+    hint.innerHTML='✓ Signed in as <b>'+(u.name||u.email)+'</b> — your details were filled in from the ERP.';
+    hint.style.color='#226b39';
   }catch(e){}
 })();
 

@@ -44,12 +44,48 @@ export default async function handler(req, res) {
   }
 
   const raw = String(req.query.empId || req.query.id || '').trim();
-  if (!raw) return res.status(400).json({ ok: false, error: 'Employee ID is required.' });
   if (raw.length > 40) return res.status(400).json({ ok: false, error: 'Employee ID is not valid.' });
 
   const erpSql = erp();
   if (!erpSql) {
     return res.status(503).json({ ok: false, error: 'ERP lookup is not configured yet.' });
+  }
+
+  // No id supplied -> resolve the signed-in user's OWN record. We already know
+  // who they are, so making them retype their Employee ID is pointless, and it
+  // also sidesteps a real failure: an app_user with no linked employee row has
+  // a null emp_code, which made the self-check below reject every id including
+  // their own. Match on employee_id first (the actual FK), then email.
+  if (!raw) {
+    try {
+      const own = await erpSql`
+        SELECT e.emp_code, e.full_name, e.email, e.mobile,
+               d.name AS department, g.name AS designation
+          FROM app_user u
+          JOIN employee e ON e.id = u.employee_id
+          LEFT JOIN department  d ON d.id = e.department_id
+          LEFT JOIN designation g ON g.id = e.designation_id
+         WHERE u.id = ${session.userId}
+         LIMIT 1`;
+      if (!own.length) {
+        return res.status(404).json({
+          ok: false,
+          error: 'Your ERP account is not linked to an employee record, so details cannot be filled in automatically. Enter them manually, or ask HR to link your ERP account.',
+        });
+      }
+      const e = own[0];
+      return res.status(200).json({
+        ok: true,
+        self: true,
+        employee: {
+          empCode: e.emp_code, name: e.full_name || '', email: e.email || '',
+          mobile: e.mobile || '', department: e.department || '', designation: e.designation || '',
+        },
+      });
+    } catch (err) {
+      console.error('employee-lookup(self) failed —', err.message);
+      return res.status(500).json({ ok: false, error: 'Could not reach the ERP right now.' });
+    }
   }
 
   try {
@@ -76,9 +112,18 @@ export default async function handler(req, res) {
     const isSelf = session.empCode && String(session.empCode).toLowerCase() === String(e.emp_code).toLowerCase();
     const isDirectory = DIRECTORY_ROLES.has(session.role);
     if (!isSelf && !isDirectory) {
+      // Distinguish "that's someone else's id" from "your account has no
+      // employee record at all" — the second used to surface as the first,
+      // which reads as a permission problem when it is really a setup gap.
+      if (!session.empCode) {
+        return res.status(403).json({
+          ok: false,
+          error: 'Your ERP account is not linked to an employee record, so it cannot be matched to an Employee ID. Enter the details manually, or ask HR to link your ERP account.',
+        });
+      }
       return res.status(403).json({
         ok: false,
-        error: 'You can only look up your own Employee ID. Enter your own, or ask HR to submit on your behalf.',
+        error: `You can only look up your own Employee ID (${session.empCode}). Enter your own, or ask HR to submit on your behalf.`,
       });
     }
 
