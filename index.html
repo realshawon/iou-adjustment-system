@@ -61,6 +61,11 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f7f9fc}tbody tr:hover .reflin
 .mhead .cnt{color:#9a9aa0;font-weight:600;text-transform:none;letter-spacing:0;margin-left:6px}
 .monthsel{font:inherit;font-size:13px;padding:9px 12px;border:1px solid #d6dae1;border-radius:9px;background:#fff;color:#1d1d1f;cursor:pointer}
 .newbtn{font:inherit;font-size:13px;font-weight:700;padding:9px 14px;border:none;border-radius:9px;background:#2a6df4;color:#fff;cursor:pointer;text-decoration:none;display:inline-block}
+/* Cross-link to the sister app. Deliberately styled like the filter controls,
+   not like .newbtn — it's navigation, and shouldn't compete with the primary
+   "+ New IOU" action sitting at the other end of the same row. */
+.applink{font:inherit;font-size:13px;font-weight:600;padding:9px 12px;border:1px solid #d6dae1;border-radius:9px;background:#fff;color:#2a6df4;text-decoration:none;display:inline-block;white-space:nowrap}
+.applink:hover{background:#f4f8ff;border-color:#2a6df4}
 .spacer{margin-left:auto;display:flex;gap:10px;align-items:center}
 .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:12px}
 .searchbox{flex:1;font:inherit;font-size:13px;padding:9px 12px;border:1px solid #d6dae1;border-radius:9px;background:#fff;color:#1d1d1f}
@@ -73,6 +78,7 @@ tbody tr{cursor:pointer}tbody tr:hover{background:#f7f9fc}tbody tr:hover .reflin
     <img class="logo" src="https://images.squarespace-cdn.com/content/v1/61b1d88771230e2244b14213/de522f80-4556-42c4-af20-e3687e746991/AKSID-HORIZONTAL-LOGO.png?format=750w" alt="AKSID Corporation Limited" onerror="this.src='/aksid-logo.png'">
     <div class="titlebox"><h1>IOU — Live Tracker</h1><p class="sub">AKSID Corporation Limited · who submitted, who it's with, what stage · live</p></div>
     <div class="spacer">
+      <a class="applink" href="https://expense.aksidcorp.com" title="Open the AKSID Expense tracker">Expense tracker ↗</a>
       <select id="withFilter" class="monthsel" onchange="render()"><option value="">Currently with — all</option></select>
       <select id="deptFilter" class="monthsel" onchange="render()"><option value="">All departments</option></select>
       <select id="categoryFilter" class="monthsel" onchange="render()"><option value="">All categories</option></select>
