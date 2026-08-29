@@ -56,9 +56,13 @@ button:disabled{opacity:.6;cursor:default}
       <label>Notes (optional — required if rejecting)</label>
       <textarea id="notes" placeholder="Any comment for the record…"></textarea>
 
+      <!-- Bound in init() via addEventListener. These used to be inline
+           onclick="act(...)", but act() is declared inside init() and so never
+           reaches global scope — the inline handlers threw "act is not defined"
+           and both buttons were dead. -->
       <div class="btnrow">
-        <button class="ok" id="btnA" onclick="act('approve')">✓ Approve</button>
-        <button class="rej" id="btnR" onclick="act('reject')">✕ Reject</button>
+        <button class="ok" id="btnA">✓ Approve</button>
+        <button class="rej" id="btnR">✕ Reject</button>
       </div>
       <div class="msg" id="msg"></div>
     </div>
@@ -90,6 +94,9 @@ const q=new URLSearchParams(location.search);
 const id=q.get('id'), stage=q.get('stage'), iou=q.get('iou')||'', amt=q.get('amt')||'';
 const STAGES={1:'Stage 1 of 4 · Concern Department Head',2:'Stage 2 of 4 · Audit',3:'Stage 3 of 4 · Accounts',4:'Stage 4 of 4 · Top Management or Others'};
 const $=x=>document.getElementById(x);
+
+$('btnA').addEventListener('click',()=>act('approve'));
+$('btnR').addEventListener('click',()=>act('reject'));
 
 if(!id||!stage){ $('noCtx').style.display='block'; $('btnA').disabled=true; $('btnR').disabled=true; }
 $('stageLbl').textContent=STAGES[stage]||('Stage '+stage);
